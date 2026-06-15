@@ -454,6 +454,38 @@
       margin: 1.1rem 0;
     }
 
+    /* LinkedIn video embed */
+    .modal-video-section { margin-top: 1.25rem; }
+    .modal-video-label {
+      font-size: 0.68rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.12em;
+      color: var(--teal); margin-bottom: 0.75rem;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .modal-video-label::before {
+      content: '';
+      display: inline-block; width: 18px; height: 18px;
+      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2300c4b4'%3E%3Cpath d='M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z'/%3E%3C/svg%3E") no-repeat center/contain;
+      flex-shrink: 0;
+    }
+    .modal-video-wrap {
+      position: relative;
+      width: 100%;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #000;
+      border: 1px solid var(--border);
+    }
+    .modal-video-wrap iframe {
+      display: block;
+      width: 100%;
+      height: 399px;
+      border: none;
+    }
+    @media (max-width: 600px) {
+      .modal-video-wrap iframe { height: 280px; }
+    }
+
     /* ══ CONTACT ══ */
     #contact{background:var(--bg);transition:background 0.35s;}
     .contact-wrapper{display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:start;}
@@ -846,6 +878,9 @@
 
         <!-- PDF button (conditionally shown) -->
         <div id="modalPdfWrap"></div>
+
+        <!-- LinkedIn video (conditionally shown) -->
+        <div id="modalVideoWrap"></div>
       </div>
     </div>
   </div>
@@ -910,6 +945,7 @@
           { src: 'SRC/CallcenterDashboard/1.png', alt: 'Call Center KPI Dashboard' },
         ],
         pdf: null,
+        video: 'https://www.linkedin.com/embed/feed/update/urn:li:ugcPost:7361292068108873728?compact=1',
       },
       hr: {
         chip:  'HR Analytics',
@@ -920,6 +956,7 @@
           { src: 'SRC/HRDashboard/1.png', alt: 'HR People Analytics Overview' },
         ],
         pdf: { path: 'SRC/HRDashboard/HR_Dashboard_Documentation.pdf', label: 'View HR Documentation' },
+        video: 'https://www.linkedin.com/embed/feed/update/urn:li:ugcPost:7466963677263323136?compact=1',
       },
       forkan: {
         chip:  'Automation',
@@ -990,6 +1027,27 @@
           </a>`;
       }
 
+      /* LinkedIn video */
+      const modalVideoW = document.getElementById('modalVideoWrap');
+      modalVideoW.innerHTML = '';
+      if(p.video) {
+        modalVideoW.innerHTML = `
+          <div class="modal-video-section">
+            <div class="modal-divider"></div>
+            <div class="modal-video-label">LinkedIn Demo</div>
+            <div class="modal-video-wrap">
+              <iframe
+                src="${p.video}"
+                height="399" width="504"
+                frameborder="0"
+                allowfullscreen
+                title="LinkedIn project demo"
+                loading="lazy"
+              ></iframe>
+            </div>
+          </div>`;
+      }
+
       setImage(0);
 
       /* Open overlay */
@@ -1033,6 +1091,9 @@
     function closeModal() {
       overlay.classList.remove('open');
       document.body.style.overflow = '';
+      /* Stop any playing LinkedIn video by clearing the iframe src */
+      const iframe = document.querySelector('#modalVideoWrap iframe');
+      if(iframe) iframe.src = iframe.src;
     }
 
     /* Arrow nav */
