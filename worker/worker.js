@@ -141,7 +141,7 @@ async function submit(request, env) {
     `SELECT (SELECT COUNT(*) FROM dax_submissions WHERE challenge_id = ?1 AND visitor_id = ?2 AND created_at > ?4) AS byVisitor,
             (SELECT COUNT(*) FROM dax_submissions WHERE ip_hash = ?3 AND created_at > ?5) AS byIp`
   ).bind(challenge, body.visitor, ipHash, ts - 60, ts - 600).first();
-  if (recent.byVisitor >= 6 || recent.byIp >= 200) return fail('You are submitting a little too fast. Wait a minute and try again.', 429, 'rate');
+  if (recent.byVisitor >= 6 || recent.byIp >= 60) return fail('You are submitting a little too fast. Wait a minute and try again.', 429, 'rate');
 
   const existing = await env.DB.prepare('SELECT name, solved_at FROM dax_solvers WHERE challenge_id = ?1 AND visitor_id = ?2')
     .bind(challenge, body.visitor).first();
