@@ -1,0 +1,18 @@
+{
+  "name": "omar-magdy-portfolio",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "dev": "node scripts/serve.mjs",
+    "check": "node scripts/check.mjs",
+    "deploy": "npm run build && npx wrangler deploy",
+    "test": "node --test scripts/test-dax.mjs scripts/test-intellisense.mjs",
+    "gen:dax": "node scripts/gen-dax-data.mjs",
+    "dev:api": "npm run build && wrangler dev"
+  },
+  "devDependencies": {
+    "wrangler": "4.149.0"
+  }
+}

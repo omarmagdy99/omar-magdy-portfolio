@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /dax-admin
+Disallow: /api/
+
+Sitemap: https://omar.daaw.dev/sitemap.xml
