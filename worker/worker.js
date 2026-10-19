@@ -8,13 +8,14 @@ const VISITOR_RE = /^[a-f0-9-]{16,64}$/;
 const LINKEDIN_RE = /^https:\/\/([a-z]{2,3}\.)?linkedin\.com\/in\/[A-Za-z0-9\-_%]{3,100}\/?$/;
 const SECURITY = {
   'X-Content-Type-Options': 'nosniff',
+  'Cross-Origin-Resource-Policy': 'same-origin',
   'Referrer-Policy': 'strict-origin-when-cross-origin',
   'Cache-Control': 'no-store',
 };
 
 const json = (data, status = 200, extra = {}) =>
   new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json; charset=utf-8', ...SECURITY, ...extra } });
-const fail = (message, status = 400) => json({ ok: false, error: message }, status);
+const fail = (message, status = 400, code) => json({ ok: false, error: message, ...(code ? { code } : {}) }, status);
 
 const now = () => Math.floor(Date.now() / 1000);
 
@@ -32,14 +33,40 @@ const dayOf = ts => new Date(ts * 1000).toISOString().slice(0, 10);
 function sameOrigin(request) {
   const origin = request.headers.get('Origin');
   if (!origin) return false;
-  const host = new URL(request.url).host;
-  return new URL(origin).host === host;
+  try { return new URL(origin).host === new URL(request.url).host; } catch { return false; }
 }
 
+class BodyError extends Error {}
+
+/** Reads a small JSON object. Rejects early on Content-Length and never buffers more than `limit` bytes. */
 async function readJson(request, limit = 16384) {
-  const text = await request.text();
-  if (text.length > limit) throw new Error('too large');
-  return JSON.parse(text);
+  const declared = Number(request.headers.get('Content-Length') ?? 0);
+  if (declared > limit) throw new BodyError('too large');
+  const reader = request.body?.getReader();
+  if (!reader) throw new BodyError('empty');
+  const chunks = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > limit) { await reader.cancel(); throw new BodyError('too large'); }
+    chunks.push(value);
+  }
+  const bytes = new Uint8Array(size);
+  let at = 0;
+  for (const c of chunks) { bytes.set(c, at); at += c.byteLength; }
+  const parsed = JSON.parse(new TextDecoder().decode(bytes));
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) throw new BodyError('not an object');
+  return parsed;
+}
+
+/** Cloudflare's rate limit binding, keyed by client IP. Missing binding (e.g. an old config) means no extra limit. */
+async function limited(env, binding, request) {
+  const limiter = env[binding];
+  if (!limiter) return false;
+  const key = request.headers.get('CF-Connecting-IP') ?? 'unknown';
+  try { return !(await limiter.limit({ key })).success; } catch { return false; }
 }
 
 async function hashIp(request, env) {
@@ -50,13 +77,15 @@ async function hashIp(request, env) {
 }
 
 function cleanName(value) {
-  const name = String(value ?? '').replace(/[\u0000-\u001f\u007f<>]/g, '').replace(/\s+/g, ' ').trim();
+  // Control and format characters (bidi overrides, zero-width joiners…) are removed so a name can't disguise itself.
+  const name = String(value ?? '').normalize('NFKC').replace(/[\p{Cc}\p{Cf}<>]/gu, '').replace(/\s+/g, ' ').trim();
   if (name.length < 2 || name.length > 32) return null;
   if (/https?:|www\.|@/i.test(name)) return null;
   return name;
 }
 const cleanSource = value => String(value ?? '').toLowerCase().replace(/[^a-z0-9._-]/g, '').slice(0, 40) || null;
-const cleanChallenge = value => (CHALLENGES[value] ? value : null);
+// Own-property check: a plain `CHALLENGES[value]` would also accept "constructor", "__proto__" and friends.
+const cleanChallenge = value => (typeof value === 'string' && Object.hasOwn(CHALLENGES, value) ? value : null);
 
 /* ─────────────── public endpoints ─────────────── */
 
@@ -93,11 +122,11 @@ async function submit(request, env) {
   const dax = String(body.dax ?? '');
   if (!challenge || !VISITOR_RE.test(body.visitor ?? '')) return fail('Invalid request.');
   const name = cleanName(body.name);
-  if (!name) return fail('Please enter a name between 2 and 32 characters (no links or @).');
-  if (dax.trim().length < 3) return fail('Write your measure first.');
-  if (dax.length > 4000) return fail('That formula is too long (4,000 characters max).');
+  if (!name) return fail('Please enter a name between 2 and 32 characters (no links or @).', 400, 'name');
+  if (dax.trim().length < 3) return fail('Write your measure first.', 400, 'empty');
+  if (dax.length > 4000) return fail('That formula is too long (4,000 characters max).', 400, 'long');
   let linkedin = String(body.linkedin ?? '').trim();
-  if (linkedin && !LINKEDIN_RE.test(linkedin)) return fail('The LinkedIn link should look like https://www.linkedin.com/in/your-name');
+  if (linkedin && !LINKEDIN_RE.test(linkedin)) return fail('The LinkedIn link should look like https://www.linkedin.com/in/your-name', 400, 'linkedin');
   linkedin = linkedin || null;
 
   const rule = CHALLENGES[challenge].requires;
@@ -112,7 +141,7 @@ async function submit(request, env) {
     `SELECT (SELECT COUNT(*) FROM dax_submissions WHERE challenge_id = ?1 AND visitor_id = ?2 AND created_at > ?4) AS byVisitor,
             (SELECT COUNT(*) FROM dax_submissions WHERE ip_hash = ?3 AND created_at > ?5) AS byIp`
   ).bind(challenge, body.visitor, ipHash, ts - 60, ts - 600).first();
-  if (recent.byVisitor >= 6 || recent.byIp >= 200) return fail('You are submitting a little too fast. Wait a minute and try again.', 429);
+  if (recent.byVisitor >= 6 || recent.byIp >= 200) return fail('You are submitting a little too fast. Wait a minute and try again.', 429, 'rate');
 
   const existing = await env.DB.prepare('SELECT name, solved_at FROM dax_solvers WHERE challenge_id = ?1 AND visitor_id = ?2')
     .bind(challenge, body.visitor).first();
@@ -122,7 +151,7 @@ async function submit(request, env) {
   await env.DB.prepare(
     `INSERT INTO dax_submissions (challenge_id, visitor_id, name, dax, status, matched, total, error, created_at, ip_hash, country)
      VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)`
-  ).bind(challenge, body.visitor, name, dax, status, result.matched ?? null, result.total ?? null, result.error ?? null, ts, ipHash, request.cf?.country ?? null).run();
+  ).bind(challenge, body.visitor, name, dax, status, result.matched ?? null, result.total ?? null, result.error ? String(result.error).slice(0, 300) : null, ts, ipHash, request.cf?.country ?? null).run();
 
   if (!result.ok) return json({ ok: false, error: result.error });
   if (!result.correct) {
@@ -257,10 +286,17 @@ export default {
         } });
       }
       if (pathname.startsWith('/api/dax/admin/')) {
+        if (await limited(env, 'RL_ADMIN', request)) return fail('Too many requests.', 429, 'rate');
         if (!authorised(request, env)) return fail('Unauthorised.', 401);
         if (pathname === '/api/dax/admin/stats' && request.method === 'GET') return await adminStats(env, url);
         if (pathname === '/api/dax/admin/hide' && request.method === 'POST') return await adminHide(request, env);
         return fail('Not found.', 404);
+      }
+      if (pathname.startsWith('/api/dax/') && request.method === 'POST') {
+        const bucket = pathname === '/api/dax/submit' ? 'RL_SUBMIT' : 'RL_EVENTS';
+        if (await limited(env, bucket, request)) return fail('Too many requests. Please slow down.', 429, 'rate');
+      } else if (pathname.startsWith('/api/dax/') && request.method === 'GET' && await limited(env, 'RL_READ', request)) {
+        return fail('Too many requests. Please slow down.', 429, 'rate');
       }
       if (pathname === '/api/dax/event' && request.method === 'POST') return await recordEvent(request, env);
       if (pathname === '/api/dax/submit' && request.method === 'POST') return await submit(request, env);
@@ -271,7 +307,7 @@ export default {
       return env.ASSETS.fetch(request);
     } catch (error) {
       console.error('dax-api', error?.stack ?? error);
-      return fail('Something went wrong on our side. Please try again.', 500);
+      return fail('Something went wrong on our side. Please try again.', 500, 'server');
     }
   },
 };

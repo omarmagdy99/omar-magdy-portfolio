@@ -71,8 +71,11 @@ export function lex(src, { trivia = false } = {}) {
 
 const PREC = { '||': 1, '&&': 2, IN: 3, '=': 3, '==': 3, '<>': 3, '<': 3, '<=': 3, '>': 3, '>=': 3, '&': 4, '+': 5, '-': 5, '*': 6, '/': 6, '^': 7 };
 
+const MAX_TOKENS = 3000, MAX_DEPTH = 100;
+
 function parseTokens(tokens, src) {
-  let p = 0;
+  if (tokens.length > MAX_TOKENS) throw new DaxError(`This formula is too long (more than ${MAX_TOKENS} tokens).`, tokens[MAX_TOKENS].start, tokens[tokens.length - 1].end);
+  let p = 0, depth = 0;
   const peek = (k = 0) => tokens[p + k];
   const here = () => peek() ?? { start: src.length, end: src.length, text: '' };
   const fail = (message, tok = here()) => { throw new DaxError(message, tok.start, tok.end); };
@@ -85,6 +88,11 @@ function parseTokens(tokens, src) {
   };
 
   function parseExpr(min) {
+    if (++depth > MAX_DEPTH) fail('This formula is nested too deeply. Split it into variables (VAR) or simplify it.');
+    try { return parseExprInner(min); } finally { depth--; }
+  }
+
+  function parseExprInner(min) {
     let left = parseUnary();
     for (;;) {
       const t = peek();
@@ -367,6 +375,8 @@ function visibleMask(model, ctx, table) {
   const shared = (model.maskCache ??= new Map());
   const key = maskKey(model, ctx, table);
   if (shared.has(key)) { const hit = shared.get(key); ctx.cache.set(table, hit); return hit; }
+  const B = model.budget;
+  if (B) { B.n += (table.n >> 2) + 1; if (B.n > B.max) throw new BudgetError('This formula needs too much work to evaluate. Try a simpler approach.'); }
   let mask = null;
   for (const e of ctx.filters) {
     if (e.tbl !== table) continue;
@@ -577,7 +587,7 @@ function evalBinary(node, env) {
 }
 
 function evalCall(node, env) {
-  const fn = FUNCS[node.name];
+  const fn = Object.hasOwn(FUNCS, node.name) ? FUNCS[node.name] : null;
   if (!fn) {
     if (KNOWN_UNSUPPORTED.has(node.name)) throw new DaxError(`${node.name} is a real DAX function, but this challenge's checker doesn't support it yet. Try solving it with other functions.`, node.start, node.end);
     throw new DaxError(`Unknown function '${node.name}'. Check the spelling.`, node.start, node.end);
@@ -1134,7 +1144,9 @@ function makeCtx(model, filters) {
 /** Evaluates a compiled measure under optional column filters, e.g. [{table:'Date',column:'YearMonth',values:['2024-03']}]. */
 export function evaluate(model, compiled, filters = [], { maxSteps = 600000 } = {}) {
   const env = { model, ctx: makeCtx(model, filters), frames: [], vars: null, B: { n: 0, max: maxSteps }, depth: 0 };
-  const v = evalNode(compiled.ast, env);
+  model.budget = env.B; // filter-mask builds are charged to the same budget
+  let v;
+  try { v = evalNode(compiled.ast, env); } finally { model.budget = null; }
   if (v instanceof Tbl) throw new DaxError('Your formula returns a table. A measure must return a single value, for example by wrapping it in COUNTROWS.', compiled.ast.start, compiled.ast.end);
   return v === undefined ? null : v;
 }
@@ -1157,7 +1169,7 @@ export function validate(model, ast) {
         if (!scope.vars.has(node.name.toLowerCase()) && !model.table(node.name) && !KEYWORD_NAMES.has(node.name.toUpperCase())) add(`'${node.name}' isn't a table or variable.`, node);
         break;
       case 'call':
-        if (!FUNCS[node.name]) add(KNOWN_UNSUPPORTED.has(node.name) ? `${node.name} isn't supported by this challenge's checker yet.` : `Unknown function '${node.name}'.`, node);
+        if (!Object.hasOwn(FUNCS, node.name)) add(KNOWN_UNSUPPORTED.has(node.name) ? `${node.name} isn't supported by this challenge's checker yet.` : `Unknown function '${node.name}'.`, node);
         node.args.forEach(a => walk(a, { ...scope, computed: scope.computed || ['ADDCOLUMNS', 'SELECTCOLUMNS', 'SUMMARIZE', 'FILTER', 'SUMX', 'TOPN', 'AVERAGEX', 'MINX', 'MAXX', 'COUNTX'].includes(node.name) }));
         break;
       case 'bin': walk(node.l, scope); walk(node.r, scope); break;

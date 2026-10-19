@@ -17,6 +17,13 @@
   "d1_databases": [
     { "binding": "DB", "database_name": "omar-portfolio", "database_id": "2d737888-60c5-4c23-9df6-acf2870560da", "migrations_dir": "migrations" }
   ],
+  // Per-IP request limits, enforced by Cloudflare before any database work happens.
+  "ratelimits": [
+    { "name": "RL_EVENTS", "namespace_id": "1001", "simple": { "limit": 120, "period": 60 } },
+    { "name": "RL_SUBMIT", "namespace_id": "1002", "simple": { "limit": 30, "period": 60 } },
+    { "name": "RL_READ", "namespace_id": "1003", "simple": { "limit": 240, "period": 60 } },
+    { "name": "RL_ADMIN", "namespace_id": "1004", "simple": { "limit": 10, "period": 60 } }
+  ],
   "workers_dev": true,
   "routes": [{ "pattern": "omar.daaw.dev", "custom_domain": true }]
 }

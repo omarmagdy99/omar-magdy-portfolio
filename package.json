@@ -8,9 +8,11 @@
     "dev": "node scripts/serve.mjs",
     "check": "node scripts/check.mjs",
     "deploy": "npm run build && npx wrangler deploy",
-    "test": "node --test scripts/test-dax.mjs scripts/test-intellisense.mjs",
+    "test": "node --test scripts/test-dax.mjs scripts/test-intellisense.mjs scripts/test-i18n.mjs",
     "gen:dax": "node scripts/gen-dax-data.mjs",
-    "dev:api": "npm run build && wrangler dev"
+    "dev:api": "npm run build && wrangler dev",
+    "security": "node scripts/security-test.mjs",
+    "load-test": "node scripts/load-test.mjs"
   },
   "devDependencies": {
     "wrangler": "4.149.0"

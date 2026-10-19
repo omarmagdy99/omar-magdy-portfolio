@@ -165,3 +165,21 @@ test('levels unlock in order', async () => {
   const { CHALLENGES } = await import('../worker/challenges.js');
   assert.deepEqual(Object.values(CHALLENGES).sort((a, b) => a.level - b.level).map(c => [c.id, c.requires]), [['aov', null], ['growth', 'aov'], ['retention', 'growth']]);
 });
+
+/* ───────── hostile input ───────── */
+test('hostile formulas are refused or bounded', () => {
+  const nested = '('.repeat(500) + '1' + ')'.repeat(500);
+  assert.throws(() => compile(nested), e => e instanceof DaxError && /nested too deeply/.test(e.message));
+  assert.throws(() => compile('1' + ' + 1'.repeat(1600)), e => e instanceof DaxError && /too long/.test(e.message));
+  for (const name of ['constructor', '__proto__', 'toString', 'hasOwnProperty', 'valueOf']) {
+    const r = grade('growth', `${name} ( 1 )`);
+    assert.equal(r.ok, false, name);
+    assert.match(r.error, /Unknown function/);
+  }
+  // a formula that rebuilds filter masks in a loop is charged for that work and stopped
+  const t = performance.now();
+  const r = grade('growth', "SUMX ( ALL ( Sales ), SUMX ( ALL ( Sales ), CALCULATE ( COUNTROWS ( Sales ), ALL ( 'Date' ) ) ) )");
+  assert.equal(r.ok, false);
+  assert.match(r.error, /too much work/);
+  assert.ok(performance.now() - t < 1500, 'stopped quickly');
+});

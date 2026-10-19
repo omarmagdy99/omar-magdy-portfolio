@@ -7,13 +7,13 @@
 .dax-page h3{font-size:18px}
 .dax-note{font-size:12px;margin-top:14px;max-width:640px}
 .dax-counters{display:flex;flex-wrap:wrap;gap:8px 26px;margin-top:26px;font-size:13px;color:var(--muted)}
-.dax-counters strong{font-family:var(--serif);font-size:24px;color:var(--ink);font-weight:500;margin-right:4px}
+.dax-counters strong{font-family:var(--serif);font-size:24px;color:var(--ink);font-weight:500;margin-inline-end:4px}
 .dax-hero .hero-actions{margin-top:30px}
 
 .dax-brief{display:grid;grid-template-columns:1.1fr .9fr;gap:56px;align-items:start}
 .dax-rules{margin:20px 0 0;padding:0;list-style:none;display:grid;gap:14px;font-size:14px;color:var(--muted)}
-.dax-rules li{padding-left:22px;position:relative;line-height:1.7}
-.dax-rules li::before{content:'';position:absolute;left:0;top:11px;width:10px;height:1px;background:var(--green)}
+.dax-rules li{padding-inline-start:22px;position:relative;line-height:1.7}
+.dax-rules li::before{content:'';position:absolute;inset-inline-start:0;top:11px;width:10px;height:1px;background:var(--green)}
 .dax-rules strong{color:var(--ink);font-weight:600}
 .dax-downloads{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
 .dax-downloads a{font-size:12px;font-weight:600;border:1px solid var(--line);padding:7px 13px;text-decoration:none;color:var(--green)}
@@ -39,13 +39,13 @@
 .bar-yours.is-ok{fill:var(--green)}
 .bar-yours.is-off{fill:#c46a52}
 .dax-legend{display:flex;gap:8px;align-items:center;font-size:11px;margin-top:6px;flex-wrap:wrap}
-.dax-legend .key{width:10px;height:10px;display:inline-block;margin-left:10px}
-.dax-legend .key:first-child{margin-left:0}
+.dax-legend .key{width:10px;height:10px;display:inline-block;margin-inline-start:10px}
+.dax-legend .key:first-child{margin-inline-start:0}
 .key--target{background:#c5d6cb}.key--yours{background:var(--green)}
 
 .dax-table-wrap{overflow-x:auto}
 .dax-table{width:100%;border-collapse:collapse;font-size:13px;background:var(--white);border:1px solid var(--line)}
-.dax-table th,.dax-table td{padding:9px 14px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+.dax-table th,.dax-table td{padding:9px 14px;text-align:start;border-bottom:1px solid var(--line);white-space:nowrap}
 .dax-table thead th{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:#eef0e9;font-weight:700}
 .dax-table tbody th{font-weight:600}
 .dax-table td:not(:first-child){font-variant-numeric:tabular-nums}
@@ -106,7 +106,7 @@
 .dax-board tbody th{font-family:var(--serif);font-size:18px;font-weight:500;color:var(--green)}
 .dax-board a{color:var(--ink)}
 .dax-board tr.is-you{background:#e6f1ea}
-.dax-you{margin-left:8px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--green);border:1px solid var(--green);padding:1px 6px}
+.dax-you{margin-inline-start:8px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--green);border:1px solid var(--green);padding:1px 6px}
 .dax-hints details{border-top:1px solid var(--line);padding-block:16px}
 .dax-hints details:last-of-type{border-bottom:1px solid var(--line)}
 .dax-hints summary{cursor:pointer;font-weight:600;font-size:14px}
@@ -210,3 +210,18 @@
 .admin-select{margin-bottom:18px;display:flex;gap:10px;align-items:center;font-size:13px}
 .admin-select select{font:inherit;padding:8px 10px;border:1px solid #b9c4b9;background:#fff}
 @media(max-width:760px){.dax-steps ol{grid-template-columns:1fr}.dax-steps a{min-height:0}}
+
+/* Arabic (right-to-left): text flows right to left, code, charts, field names and numbers stay left to right. */
+[dir="rtl"] .dax-editor,[dir="rtl"] .dax-fields,[dir="rtl"] .dax-data__body,[dir="rtl"] .dax-chart svg,[dir="rtl"] .compare-chart,[dir="rtl"] .model-diagram{direction:ltr;text-align:left}
+[dir="rtl"] .dax-fields h3{text-align:right}
+[dir="rtl"] .dax-result .dax-table td:not(:first-child){direction:ltr;text-align:right}
+[dir="rtl"] .dax-board td:nth-child(3),[dir="rtl"] .dax-board td:nth-child(4){direction:ltr;text-align:right}
+[dir="rtl"] .dax-table--mono th,[dir="rtl"] .dax-table--mono td{text-align:left}
+[dir="rtl"] .dax-steps__n{margin-inline-end:0}
+[dir="rtl"] .dax-submit input[dir="ltr"]{text-align:left}
+html[lang=ar] .dax-page h2{font-size:clamp(26px,3vw,36px)}
+html[lang=ar] .dax-board tbody th{font-family:var(--sans)}
+html[lang=ar] .dax-cta p{font-family:var(--sans);font-size:22px}
+html[lang=ar] .dax-counters strong{font-family:var(--sans)}
+
+.dax-confetti{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:60}

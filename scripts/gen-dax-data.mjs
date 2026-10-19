@@ -20,14 +20,14 @@ const series = fn => ({ public: fn(pub), hidden: fn(hidden), hiddenCairo: fn(hid
 const expected = { aov: series(aovByMonth), growth: series(growthByMonth), retention: series(retentionByMonth) };
 
 const starter = name => [`${name} =`, '    // Write your DAX here. Start typing for suggestions.', '    BLANK ()'].join('\n');
-const sales = { name: 'Total Sales', label: 'Total Sales', values: salesByMonth(pub) };
+const sales = { name: 'Total Sales', label: 'Total Sales', labelAr: 'إجمالي المبيعات', values: salesByMonth(pub) };
 // What the page shows as the target for each challenge (public data only).
 const targets = {
   aov: { months: RETENTION.gradedMonths, values: expected.aov.public, format: 'money', measureName: 'Average Order Value', context: sales, starter: starter('Average Order Value') },
   growth: { months: RETENTION.gradedMonths, values: expected.growth.public, format: 'percent', measureName: 'Sales MoM %', context: sales, starter: starter('Sales MoM %') },
   retention: {
     months: RETENTION.gradedMonths, values: expected.retention.public, format: 'count', measureName: 'Retained Customers',
-    context: { name: 'Active Customers', label: 'Active customers', values: null }, starter: starter('Retained Customers'),
+    context: { name: 'Active Customers', label: 'Active customers', labelAr: 'العملاء النشطون', values: null }, starter: starter('Retained Customers'),
   },
 };
 for (const [id, t] of Object.entries(targets)) await writeFile(join(dataDir, `${id}-target.json`), JSON.stringify(t));

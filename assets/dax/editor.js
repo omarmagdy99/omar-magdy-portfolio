@@ -7,10 +7,23 @@ const esc = s => s.replace(/[&<>]/g, c => ESC[c]);
 const PAIRS = { '(': ')', '[': ']', '{': '}', '"': '"', "'": "'" };
 const KIND_LABEL = { function: 'fx', table: 'T', column: 'C', measure: 'M', variable: 'V', keyword: 'K' };
 
-export function createEditor(root, model, { value = '', onChange = () => {}, onRun = () => {}, label = 'DAX measure editor' } = {}) {
+const DEFAULT_STRINGS = {
+  title: 'Measure',
+  hintHtml: '<kbd>Ctrl</kbd>+<kbd>Space</kbd> suggestions · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> run',
+  label: 'DAX measure editor',
+  empty: 'Write a measure, for example: Total Sales = SUM ( Sales[Amount] )',
+  ok: '✓ No problems found',
+  problem: (message, line, col) => `⚠ ${message} (line ${line}, column ${col})`,
+  suggestions: 'Suggestions',
+};
+
+export function createEditor(root, model, { value = '', onChange = () => {}, onRun = () => {}, strings = {} } = {}) {
+  const S = { ...DEFAULT_STRINGS, ...strings };
+  const label = S.label;
   root.classList.add('dax-editor');
+  root.setAttribute('dir', 'ltr'); // code is always left-to-right, even on Arabic pages
   root.innerHTML = `
-    <div class="dax-editor__bar"><span class="dax-editor__title">Measure</span><span class="dax-editor__hint"><kbd>Ctrl</kbd>+<kbd>Space</kbd> suggestions · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> run</span></div>
+    <div class="dax-editor__bar"><span class="dax-editor__title">${S.title}</span><span class="dax-editor__hint">${S.hintHtml}</span></div>
     <div class="dax-editor__body">
       <div class="dax-editor__gutter" aria-hidden="true"></div>
       <div class="dax-editor__code">
@@ -19,7 +32,7 @@ export function createEditor(root, model, { value = '', onChange = () => {}, onR
           role="combobox" aria-autocomplete="list" aria-expanded="false" aria-haspopup="listbox"></textarea>
         <div class="dax-sig" hidden role="status"></div>
         <div class="dax-suggest" hidden>
-          <ul role="listbox" aria-label="Suggestions"></ul>
+          <ul role="listbox" aria-label="${S.suggestions}"></ul>
           <div class="dax-suggest__doc"></div>
         </div>
       </div>
@@ -71,11 +84,11 @@ export function createEditor(root, model, { value = '', onChange = () => {}, onR
     const text = input.value;
     const d = diagnose(text, model);
     errRanges = d.issues.map(i => ({ start: i.start, end: i.end }));
-    if (d.empty) statusEl.textContent = 'Write a measure, for example: Total Sales = SUM ( Sales[Amount] )';
-    else if (d.ok) statusEl.textContent = '✓ No problems found';
+    if (d.empty) statusEl.textContent = S.empty;
+    else if (d.ok) statusEl.textContent = S.ok;
     else {
       const i = d.issues[0]; const { line, col } = lineCol(text, i.start);
-      statusEl.textContent = `⚠ ${i.message} (line ${line}, column ${col})`;
+      statusEl.textContent = S.problem(i.message, line, col);
     }
     statusEl.classList.toggle('is-error', !d.ok && !d.empty);
     render();
