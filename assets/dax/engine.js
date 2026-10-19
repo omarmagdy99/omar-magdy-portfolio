@@ -1086,7 +1086,17 @@ function shiftDates(dates, n, unit) {
     for (const mi of byMonth.keys()) { const t = mi + k, y = Math.floor(t / 12), m = ((t % 12) + 12) % 12 + 1; for (let d = 1; d <= daysIn(y, m); d++) out.push(fmtDate(y, m, d)); }
     return out;
   }
-  return dates.map(d => addMonthsMonthEnd(d, k));
+  // Partial selection. A contiguous run of dates moves as a range: the start shifts by calendar month, and an end that
+  // is the last day of its month lands on the last day of the target month (Feb 28-29 + 1 month = Mar 28-31).
+  // A single date or a gap-filled selection shifts date by date, keeping the day number (Feb 29 + 1 month = Mar 29).
+  const contiguous = dates.length >= 2 && dates.every((d, i) => i === 0 || addDays(dates[i - 1], 1) === d);
+  if (contiguous) {
+    const from = addMonthsClamp(dates[0], k), to = addMonthsMonthEnd(dates[dates.length - 1], k);
+    const out = [];
+    for (let d = from; d <= to && out.length < 4000; d = addDays(d, 1)) out.push(d);
+    return out;
+  }
+  return dates.map(d => addMonthsClamp(d, k));
 }
 FUNCS.DATEADD = (n, env) => {
   needArgs(n, 3); const inp = dateInput(n.args[0], env); const { t, c, dates } = inp;

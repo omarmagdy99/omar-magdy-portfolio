@@ -246,3 +246,16 @@ test('strict equality treats BLANK as different from 0, empty text and FALSE', (
   assert.equal(v('1 == 1'), true);
   assert.equal(v('"1" == 1'), false);
 });
+
+test('DATEADD handles partial month selections like DAX', () => {
+  const m = model(PUBLIC_SEED);
+  const shifted = (filter, n = 1) => {
+    // count the dates DATEADD produces for a selection of the Date column
+    const compiled = compile(`COUNTROWS ( CALCULATETABLE ( VALUES ( 'Date'[Date] ), DATEADD ( 'Date'[Date], ${n}, MONTH ) ) )`);
+    return evaluate(m, compiled, filter);
+  };
+  const sel = values => [{ table: 'Date', column: 'Date', values }];
+  assert.equal(shifted(sel(['2024-02-28', '2024-02-29'])), 4);       // Mar 28–31
+  assert.equal(shifted(sel(['2024-02-29'])), 1);                      // Mar 29, not Mar 31
+  assert.equal(shifted(sel(['2024-03-01', '2024-03-02', '2024-03-03']), -1), 3); // Feb 1–3
+});

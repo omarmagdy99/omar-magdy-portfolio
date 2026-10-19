@@ -19,7 +19,7 @@
   ],
   // Per-IP request limits, enforced by Cloudflare before any database work happens.
   "ratelimits": [
-    { "name": "RL_EVENTS", "namespace_id": "1001", "simple": { "limit": 120, "period": 60 } },
+    { "name": "RL_EVENTS", "namespace_id": "1001", "simple": { "limit": 60, "period": 60 } },
     { "name": "RL_SUBMIT", "namespace_id": "1002", "simple": { "limit": 30, "period": 60 } },
     { "name": "RL_READ", "namespace_id": "1003", "simple": { "limit": 240, "period": 60 } },
     { "name": "RL_ADMIN", "namespace_id": "1004", "simple": { "limit": 10, "period": 60 } }
