@@ -17,3 +17,8 @@ harder "Who came back?" retention challenge is fully implemented and tested as `
 
 ## Load / performance (measured locally)
 - 100 simultaneous visitors, 1,500 requests, 300 correct solves: 0 errors, lock enforced. Grading of the heaviest solution ≈ 6 ms warm after caching (was 21 ms). Leaderboard/stats are cached per isolate (10 s / 60 s). Per-IP submit limit is 200 / 10 min.
+
+## Code review follow-up (Codex)
+Fixed: hidden data now from secret seeds (generator moved to `worker/`, not published), text length cap, CALCULATE argument order, every city graded, RELATED path search, UNION duplicates, strict `==`, rank race, admin errors, data tabs a11y, editor `lang=en`.
+Not changed: DATEADD partial-month edge cases; analytics rows from rotating visitor ids (rate-limited per IP; consider Turnstile).
+**Before the next deploy:** `npx wrangler secret put HIDDEN_SEEDS` (e.g. `912345,678901`), because the old default seeds are in the public git history.

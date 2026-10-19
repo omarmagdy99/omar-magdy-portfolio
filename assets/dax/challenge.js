@@ -105,17 +105,17 @@ async function init(root) {
   /* data preview */
   const dataBody = $(root.parentElement, '[data-dax-data]');
   if (dataBody) {
-    const tabs = el('div', { className: 'dax-tabs', role: 'tablist' });
+    const tabs = el('div', { className: 'dax-tabs', role: 'group', ariaLabel: t('tabsLabel') });
     const panel = el('div', { className: 'dax-table-wrap' });
     const show = tb => {
-      tabs.querySelectorAll('button').forEach(b => b.setAttribute('aria-selected', String(b.textContent === tb.name)));
+      tabs.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.textContent === tb.name)));
       const grid = el('table', { className: 'dax-table dax-table--mono' });
       grid.append(el('thead', {}, el('tr', {}, ...tb.cols.map(c => el('th', { scope: 'col' }, c.name)))));
       grid.append(el('tbody', {}, ...tb.rows.slice(0, 8).map(r => el('tr', {}, ...r.map(v => el('td', {}, String(v)))))));
       panel.replaceChildren(grid, el('p', { className: 'dax-note' }, t('dataRows', { n: tb.n.toLocaleString('en-US') })));
     };
     for (const tb of model.tables.values()) {
-      const b = el('button', { type: 'button', role: 'tab' }, tb.name);
+      const b = el('button', { type: 'button' }, tb.name);
       b.addEventListener('click', () => show(tb));
       tabs.append(b);
     }

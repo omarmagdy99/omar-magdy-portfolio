@@ -38,7 +38,10 @@ function login(message) {
 async function call(path, init = {}) {
   const res = await fetch(path, { ...init, headers: { Authorization: `Bearer ${get()}`, 'Content-Type': 'application/json' }, cache: 'no-store' });
   if (res.status === 401) throw Object.assign(new Error('unauthorised'), { code: 401 });
-  return res.json();
+  let data = null;
+  try { data = await res.json(); } catch { /* not JSON */ }
+  if (!res.ok || !data || data.ok === false) throw Object.assign(new Error(data?.error || `HTTP ${res.status}`), { code: res.status });
+  return data;
 }
 
 async function load() {
@@ -46,7 +49,7 @@ async function load() {
   let d;
   try { d = await call(`/api/dax/admin/stats?challenge=${current}`); } catch (e) {
     if (e.code === 401) { put(''); return login('That token was not accepted.'); }
-    return login('Could not load the stats.');
+    return login(e.code === 429 ? 'Too many requests. Wait a minute and try again.' : 'Could not load the stats. Try again in a moment.');
   }
   const f = d.funnel, r = d.rates;
   const funnel = [
@@ -60,7 +63,10 @@ async function load() {
   };
   const solverRows = d.solvers.map(s => {
     const b = el('button', { className: 'button secondary', type: 'button' }, s.hidden ? 'Show' : 'Hide');
-    b.addEventListener('click', async () => { b.disabled = true; await call('/api/dax/admin/hide', { method: 'POST', body: JSON.stringify({ challenge: d.challenge, visitor: s.visitor_id, hidden: !s.hidden }) }); load(); });
+    b.addEventListener('click', async () => {
+      b.disabled = true;
+      try { await call('/api/dax/admin/hide', { method: 'POST', body: JSON.stringify({ challenge: d.challenge, visitor: s.visitor_id, hidden: !s.hidden }) }); await load(); } catch (e) { b.disabled = false; b.textContent = e.code === 429 ? 'Wait…' : 'Retry'; }
+    });
     return el('tr', {}, el('td', {}, s.name + (s.hidden ? ' (hidden)' : '')), el('td', {}, String(s.attempts)), el('td', {}, when(s.solved_at)), el('td', {}, b));
   });
 

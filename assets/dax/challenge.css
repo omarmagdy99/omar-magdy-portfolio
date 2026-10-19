@@ -100,7 +100,7 @@
 .dax-data__body{padding:0 18px 18px}
 .dax-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
 .dax-tabs button{border:1px solid var(--line);background:transparent;padding:6px 14px;font-size:12px;font-weight:600}
-.dax-tabs button[aria-selected="true"]{background:var(--green);color:#fff;border-color:var(--green)}
+.dax-tabs button[aria-pressed="true"]{background:var(--green);color:#fff;border-color:var(--green)}
 
 .dax-board th:first-child,.dax-board td:first-child{width:56px}
 .dax-board tbody th{font-family:var(--serif);font-size:18px;font-weight:500;color:var(--green)}

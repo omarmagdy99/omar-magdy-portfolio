@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Model, compile, evaluate, validate, DaxError } from '../assets/dax/engine.js';
-import { generateRetentionModel, retentionByMonth, growthByMonth, aovByMonth, PUBLIC_SEED, HIDDEN_SEED } from '../assets/dax/datagen.js';
+import { generateRetentionModel, retentionByMonth, growthByMonth, aovByMonth, PUBLIC_SEED, DEFAULT_HIDDEN_SEEDS } from '../worker/datagen.js';
 import { grade as gradeAny, REFERENCE, evaluateSeries } from '../worker/challenges.js';
 const REFERENCE_DAX = REFERENCE.retention;
 const grade = (id, dax) => gradeAny(id, dax);
@@ -39,8 +39,8 @@ RETURN COUNTROWS ( INTERSECT ( VALUES ( Sales[CustomerID] ), CALCULATETABLE ( VA
 
 test('engine agrees with an independent JavaScript computation (public and hidden data)', () => {
   assert.deepEqual(series(REFERENCE_DAX), retentionByMonth(generateRetentionModel(PUBLIC_SEED)));
-  assert.deepEqual(series(REFERENCE_DAX, HIDDEN_SEED), retentionByMonth(generateRetentionModel(HIDDEN_SEED)));
-  assert.deepEqual(series(REFERENCE_DAX, HIDDEN_SEED, [{ table: 'Customers', column: 'City', values: ['Cairo'] }]), retentionByMonth(generateRetentionModel(HIDDEN_SEED), { city: 'Cairo' }));
+  assert.deepEqual(series(REFERENCE_DAX, DEFAULT_HIDDEN_SEEDS[0]), retentionByMonth(generateRetentionModel(DEFAULT_HIDDEN_SEEDS[0])));
+  assert.deepEqual(series(REFERENCE_DAX, DEFAULT_HIDDEN_SEEDS[0], [{ table: 'Customers', column: 'City', values: ['Cairo'] }]), retentionByMonth(generateRetentionModel(DEFAULT_HIDDEN_SEEDS[0]), { city: 'Cairo' }));
 });
 
 for (const [name, dax] of Object.entries(SOLUTIONS)) {
@@ -135,8 +135,8 @@ test('growth: engine agrees with plain JavaScript on public and hidden data', ()
   const run = (seed, extra = []) => evaluateSeries(model(seed), compile(REFERENCE.growth), extra);
   const close = (a, b) => a.every((v, i) => Math.abs(v - b[i]) < 1e-9);
   assert.ok(close(run(PUBLIC_SEED), growthByMonth(generateRetentionModel(PUBLIC_SEED))));
-  assert.ok(close(run(HIDDEN_SEED), growthByMonth(generateRetentionModel(HIDDEN_SEED))));
-  assert.ok(close(run(HIDDEN_SEED, [{ table: 'Customers', column: 'City', values: ['Cairo'] }]), growthByMonth(generateRetentionModel(HIDDEN_SEED), { city: 'Cairo' })));
+  assert.ok(close(run(DEFAULT_HIDDEN_SEEDS[0]), growthByMonth(generateRetentionModel(DEFAULT_HIDDEN_SEEDS[0]))));
+  assert.ok(close(run(DEFAULT_HIDDEN_SEEDS[0], [{ table: 'Customers', column: 'City', values: ['Cairo'] }]), growthByMonth(generateRetentionModel(DEFAULT_HIDDEN_SEEDS[0]), { city: 'Cairo' })));
 });
 for (const [name, dax] of Object.entries(GROWTH_OK)) test(`growth accepts: ${name}`, () => { const r = grade('growth', dax); assert.equal(r.ok, true, r.error); assert.equal(r.correct, true, `matched ${r.matched}/${r.total} (${r.stage})`); });
 for (const [name, dax] of Object.entries(GROWTH_WRONG)) test(`growth rejects: ${name}`, () => { const r = grade('growth', dax); assert.equal(r.ok, true, r.error); assert.equal(r.correct, false); });
@@ -157,7 +157,7 @@ test('aov: engine agrees with plain JavaScript on public and hidden data', () =>
   const run = (seed, extra = []) => evaluateSeries(model(seed), compile(REFERENCE.aov), extra);
   const close = (a, b) => a.every((v, i) => Math.abs(v - b[i]) < 1e-9);
   assert.ok(close(run(PUBLIC_SEED), aovByMonth(generateRetentionModel(PUBLIC_SEED))));
-  assert.ok(close(run(HIDDEN_SEED, [{ table: 'Customers', column: 'City', values: ['Cairo'] }]), aovByMonth(generateRetentionModel(HIDDEN_SEED), { city: 'Cairo' })));
+  assert.ok(close(run(DEFAULT_HIDDEN_SEEDS[0], [{ table: 'Customers', column: 'City', values: ['Cairo'] }]), aovByMonth(generateRetentionModel(DEFAULT_HIDDEN_SEEDS[0]), { city: 'Cairo' })));
 });
 for (const [name, dax] of Object.entries(AOV_OK)) test(`aov accepts: ${name}`, () => { const r = grade('aov', dax); assert.equal(r.ok, true, r.error); assert.equal(r.correct, true, `matched ${r.matched}/${r.total} (${r.stage})`); });
 for (const [name, dax] of Object.entries(AOV_WRONG)) test(`aov rejects: ${name}`, () => { const r = grade('aov', dax); assert.equal(r.ok, true, r.error); assert.equal(r.correct, false); });
@@ -182,4 +182,67 @@ test('hostile formulas are refused or bounded', () => {
   assert.equal(r.ok, false);
   assert.match(r.error, /too much work/);
   assert.ok(performance.now() - t < 1500, 'stopped quickly');
+});
+
+/* ───────── review findings (Codex) ───────── */
+test('text can not be grown without bound', () => {
+  const doubling = 'VAR a0 = "xxxxxxxxxxxxxxxx" ' + Array.from({ length: 24 }, (_, i) => `VAR a${i + 1} = a${i} & a${i}`).join(' ') + ' RETURN IF ( a24 = "q", 1, 0 )';
+  const r = grade('aov', doubling);
+  assert.equal(r.ok, false);
+  assert.match(r.error, /longer than/);
+});
+
+test('CALCULATE evaluates filter arguments in the original context', () => {
+  // Inside the iterator the explicit VALUES filter sees ALL visible customers, so the denominator is multiplied.
+  const wrong = 'DIVIDE ( [Total Sales], SUMX ( VALUES ( Sales[CustomerID] ), CALCULATE ( COUNTROWS ( Sales ), VALUES ( Sales[CustomerID] ) ) ) )';
+  const r = grade('aov', wrong);
+  assert.equal(r.ok, true, r.error);
+  assert.equal(r.correct, false);
+});
+
+test('every city is graded, not just one', () => {
+  const cheat = 'IF ( SELECTEDVALUE ( Customers[City] ) = "Alexandria", 0, AVERAGE ( Sales[Amount] ) )';
+  const r = grade('aov', cheat);
+  assert.equal(r.ok, true, r.error);
+  assert.equal(r.correct, false);
+  assert.equal(r.stage, 'hidden');
+});
+
+test('hidden datasets come from the supplied seeds, and correct answers pass for any seeds', async () => {
+  const { parseSeeds } = await import('../worker/challenges.js');
+  assert.deepEqual(parseSeeds('111, 222'), [111, 222]);
+  assert.deepEqual(parseSeeds(undefined), DEFAULT_HIDDEN_SEEDS);
+  assert.deepEqual(parseSeeds('abc,-5,1.5'), DEFAULT_HIDDEN_SEEDS);
+  for (const seeds of [[111, 222], [987654, 123456], [5, 6]]) assert.equal(grade('growth', REFERENCE.growth, { hiddenSeeds: seeds }).correct, true, seeds.join());
+  // a lookup table built from the default seeds can not pass once the seeds are different
+  const lookup = 'SWITCH ( MAX ( \'Date\'[MonthNo] ), 1, 0.237525, 2, -0.074833, 3, -0.056939, 4, -0.034261, 5, -0.349139, 6, -0.120576, 7, 0.705741, 8, -0.254, 9, 0.265, 10, -0.011, 11, 0.224, 12, 0.22 )';
+  assert.equal(grade('growth', lookup, { hiddenSeeds: [111, 222] }).correct, false);
+});
+
+test('RELATED follows the relationship toward the requested table', () => {
+  const viaDate = 'DIVIDE ( SUMX ( Sales, Sales[Amount] * ( RELATED ( \'Date\'[Year] ) > 0 ) ), COUNTROWS ( Sales ) )';
+  const viaCustomers = 'DIVIDE ( SUMX ( Sales, Sales[Amount] * ( LEN_IS_UNSUPPORTED = 1 ) ), 1 )';
+  const r = grade('aov', viaDate);
+  assert.equal(r.ok, true, r.error);
+  assert.equal(r.correct, true);
+  assert.equal(evaluate(model(PUBLIC_SEED), compile('SUMX ( Sales, IF ( RELATED ( Customers[City] ) = "Cairo", 1, 0 ) )')) > 0, true);
+  assert.ok(viaCustomers);
+});
+
+test('UNION keeps duplicate rows', () => {
+  const m = model(PUBLIC_SEED);
+  assert.equal(evaluate(m, compile('COUNTROWS ( UNION ( { 1 }, { 1 } ) )')), 2);
+  assert.equal(evaluate(m, compile('COUNTROWS ( DISTINCT ( UNION ( { 1 }, { 1 } ) ) )')), 1);
+  const aov = 'DIVIDE ( SUMX ( UNION ( Sales, Sales ), Sales[Amount] ), 2 * DISTINCTCOUNT ( Sales[OrderID] ) )';
+  assert.equal(grade('aov', aov).correct, true);
+});
+
+test('strict equality treats BLANK as different from 0, empty text and FALSE', () => {
+  const m = model(PUBLIC_SEED);
+  const v = d => evaluate(m, compile(d));
+  assert.equal(v('BLANK () == 0'), false);
+  assert.equal(v('BLANK () = 0'), true);
+  assert.equal(v('BLANK () == BLANK ()'), true);
+  assert.equal(v('1 == 1'), true);
+  assert.equal(v('"1" == 1'), false);
 });

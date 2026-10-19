@@ -22,6 +22,7 @@ export function createEditor(root, model, { value = '', onChange = () => {}, onR
   const label = S.label;
   root.classList.add('dax-editor');
   root.setAttribute('dir', 'ltr'); // code is always left-to-right, even on Arabic pages
+  root.setAttribute('lang', 'en'); // the editor is English on every page
   root.innerHTML = `
     <div class="dax-editor__bar" dir="ltr"><span class="dax-editor__title">${S.title}</span><span class="dax-editor__hint">${S.hintHtml}</span></div>
     <div class="dax-editor__body" dir="ltr">

@@ -1,7 +1,9 @@
-// Server-side challenge registry. Grading runs the visitor's measure against the public dataset and a
-// hidden one, in every graded month, and compares with answers precomputed in plain JavaScript.
+// Server-side challenge registry. Grading runs the visitor's measure against the public dataset and several hidden
+// ones, for every month and every city, and compares with answers computed independently in plain JavaScript.
+// The hidden datasets come from secret seeds (env.HIDDEN_SEEDS): this repository is public, so nothing that
+// could rebuild them is committed or published.
 import { Model, compile, evaluate, validate, DaxError } from '../assets/dax/engine.js';
-import { generateRetentionModel, RETENTION, PUBLIC_SEED, HIDDEN_SEED } from '../assets/dax/datagen.js';
+import { generateRetentionModel, retentionByMonth, growthByMonth, aovByMonth, RETENTION, PUBLIC_SEED, DEFAULT_HIDDEN_SEEDS } from './datagen.js';
 import expected from './generated/expected.json' with { type: 'json' };
 
 export const REFERENCE = {
@@ -31,19 +33,37 @@ export const CHALLENGES = {
   retention: { id: 'retention', level: 3, title: 'Who came back?', tolerance: 1e-9, requires: 'growth' },
 };
 
-function scenariosFor(id) {
-  const e = expected[id];
-  return [
-    { dataset: 'public', seed: PUBLIC_SEED, extra: [], expected: e.public },
-    { dataset: 'hidden', seed: HIDDEN_SEED, extra: [], expected: e.hidden },
-    { dataset: 'hidden', seed: HIDDEN_SEED, extra: [{ table: 'Customers', column: 'City', values: ['Cairo'] }], expected: e.hiddenCairo },
-  ];
+const EXPECTED_FN = { aov: aovByMonth, growth: growthByMonth, retention: retentionByMonth };
+const CITIES = ['Cairo', 'Alexandria', 'Giza'];
+
+/** Parses the HIDDEN_SEEDS secret ("123,456"); falls back to the development defaults. */
+export function parseSeeds(value) {
+  const seeds = String(value ?? '').split(',').map(s => Number(s.trim())).filter(n => Number.isSafeInteger(n) && n > 0);
+  return seeds.length >= 2 ? seeds.slice(0, 4) : DEFAULT_HIDDEN_SEEDS;
 }
 
 const modelCache = new Map();
 function modelFor(seed) {
   if (!modelCache.has(seed)) modelCache.set(seed, new Model(generateRetentionModel(seed)));
   return modelCache.get(seed);
+}
+const expectedCache = new Map();
+function expectedFor(id, seed, city) {
+  const key = `${id}|${seed}|${city ?? ''}`;
+  if (!expectedCache.has(key)) expectedCache.set(key, EXPECTED_FN[id](modelFor(seed).spec, city ? { city } : {}));
+  return expectedCache.get(key);
+}
+
+/** Public data first, then every hidden dataset overall, then each city on a different hidden dataset. */
+function scenariosFor(id, seeds) {
+  const [a, b] = seeds;
+  const city = (name, seed) => ({ dataset: 'hidden', seed, extra: [{ table: 'Customers', column: 'City', values: [name] }], expected: expectedFor(id, seed, name) });
+  return [
+    { dataset: 'public', seed: PUBLIC_SEED, extra: [], expected: expected[id].public },
+    { dataset: 'hidden', seed: a, extra: [], expected: expectedFor(id, a) },
+    { dataset: 'hidden', seed: b, extra: [], expected: expectedFor(id, b) },
+    city(CITIES[0], b), city(CITIES[1], a), city(CITIES[2], b),
+  ];
 }
 
 export function evaluateSeries(model, compiled, extra = []) {
@@ -54,9 +74,9 @@ export function evaluateSeries(model, compiled, extra = []) {
 }
 
 /** Grades a submission. Never throws: errors come back as { ok:false, error }. */
-export function grade(challengeId, dax) {
+export function grade(challengeId, dax, { hiddenSeeds } = {}) {
+  if (typeof challengeId !== 'string' || !Object.hasOwn(CHALLENGES, challengeId)) return { ok: false, error: 'Unknown challenge.' };
   const challenge = CHALLENGES[challengeId];
-  if (!challenge) return { ok: false, error: 'Unknown challenge.' };
   const same = (a, b) => typeof a === 'number' && isFinite(a) && Math.abs(a - b) <= challenge.tolerance;
   let compiled;
   try {
@@ -66,10 +86,9 @@ export function grade(challengeId, dax) {
   } catch (e) {
     return { ok: false, error: e instanceof DaxError ? e.message : 'Could not read that formula.' };
   }
-  // Public data first: most wrong answers stop here, which keeps grading cheap.
   let matched = 0, total = 0;
   try {
-    for (const s of scenariosFor(challengeId)) {
+    for (const s of scenariosFor(challengeId, hiddenSeeds ?? DEFAULT_HIDDEN_SEEDS)) {
       const series = evaluateSeries(modelFor(s.seed), compiled, s.extra);
       let ok = 0;
       series.forEach((v, i) => { if (same(v, s.expected[i])) ok++; });

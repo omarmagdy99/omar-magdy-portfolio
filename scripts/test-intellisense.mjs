@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Model } from '../assets/dax/engine.js';
-import { generateRetentionModel, PUBLIC_SEED } from '../assets/dax/datagen.js';
+import { generateRetentionModel, PUBLIC_SEED } from '../worker/datagen.js';
 import { FUNCTIONS } from '../assets/dax/functions.js';
 import { SUPPORTED } from '../assets/dax/engine.js';
 import { complete, signatureHelp, highlight, diagnose } from '../assets/dax/intellisense.js';

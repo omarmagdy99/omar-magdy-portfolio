@@ -105,8 +105,18 @@ ok((await get('/api/dax/admin/stats')).status === 401, 'admin stats need a token
 ok((await get('/api/dax/admin/stats', { Authorization: 'Bearer wrong' })).status === 401, 'wrong admin token refused');
 ok((await get('/api/dax/admin/stats', { Authorization: `Bearer ${ADMIN}` })).status === 200, 'right admin token accepted');
 ok((await post('/api/dax/admin/hide', { challenge: 'aov', visitor: randomUUID(), hidden: true })).status === 401, 'admin hide needs a token');
-for (const path of ['/.dev.vars', '/wrangler.jsonc', '/worker/worker.js', '/.git/config', '/package.json', '/migrations/0001_dax_challenge.sql', '/worker/generated/expected.json', '/api/dax/../../.dev.vars', '/%2e%2e/.dev.vars']) {
+for (const path of ['/.dev.vars', '/wrangler.jsonc', '/worker/worker.js', '/.git/config', '/package.json', '/migrations/0001_dax_challenge.sql', '/worker/generated/expected.json', '/assets/dax/datagen.js', '/worker/datagen.js', '/api/dax/../../.dev.vars', '/%2e%2e/.dev.vars']) {
   const r = await get(path); ok(r.status === 404 || !/ADMIN_TOKEN|database_id|expected|CREATE TABLE/.test(r.text), `${path} not exposed`, `got ${r.status}`);
+}
+
+console.log('\n6b. Concurrent solves by one visitor give one consistent rank');
+{
+  const id = randomUUID();
+  const results = await Promise.all(Array.from({ length: 6 }, () => submit({ visitor: id, name: 'Racer' })));
+  const ranks = new Set(results.map(r => r.json?.rank));
+  ok(results.every(r => r.json?.correct === true), 'all six concurrent submissions are accepted as correct', JSON.stringify(results.map(r => r.status)));
+  ok(ranks.size === 1, 'they all report the same rank', JSON.stringify([...ranks]));
+  ok(d1(`SELECT COUNT(*) AS c FROM dax_solvers WHERE visitor_id = '${id}'`)[0].c === 1, 'only one leaderboard row exists for that visitor');
 }
 
 console.log('\n7. Database integrity after everything');

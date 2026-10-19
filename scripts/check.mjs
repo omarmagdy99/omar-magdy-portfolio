@@ -49,6 +49,12 @@ for(const page of pages.filter(p=>!p.endsWith('404.html'))){
  if(html.includes('<html lang="ar"'))assert(html.includes('dir="rtl"'),'Arabic needs right-to-left layout');
 }
 assert((await readFile(join(root,'robots.txt'),'utf8')).includes('Sitemap: https://'));
+// Grading internals must never be published: the repository is public, so only the secret seeds keep the hidden data hidden.
+for(const file of files){
+ const name=file.slice(root.length+1);
+ if(/datagen|expected\.json/.test(name))errors.push(`${name}: grading data or generator must not be published`);
+ if(/\.(js|mjs|json)$/.test(name)&&/HIDDEN_SEED|hiddenSeeds/.test(await readFile(file,'utf8')))errors.push(`${name}: mentions hidden grading seeds`);
+}
 const size=(await Promise.all(files.map(async p=>(await stat(p)).size))).reduce((a,b)=>a+b,0);
 if(errors.length){console.error(errors.join('\n'));process.exit(1);}
 console.log(`PASS: ${pages.length} pages, all local links/anchors/assets, structured data, image dimensions and SEO metadata. ${files.length} published files, ${(size/1024/1024).toFixed(2)} MB total.`);

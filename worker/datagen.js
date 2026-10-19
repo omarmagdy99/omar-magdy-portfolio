@@ -1,5 +1,6 @@
 // Deterministic sample data for the DAX challenges. The public dataset and the hidden grading
-// dataset come from the same generator with different seeds, so a hard-coded answer can't pass.
+// datasets come from the same generator with different seeds, so a hard-coded answer can't pass.
+// This file lives outside assets/ on purpose: it is never published to visitors.
 
 function mulberry32(seed) {
   let a = seed >>> 0;
@@ -138,4 +139,6 @@ export function salesByMonth(model) {
 }
 
 export const PUBLIC_SEED = 20240131;
-export const HIDDEN_SEED = 77013;
+// Development fallback only. This repository is public, so production grading uses the HIDDEN_SEEDS secret
+// (`npx wrangler secret put HIDDEN_SEEDS`, comma-separated integers); these defaults must never be relied on there.
+export const DEFAULT_HIDDEN_SEEDS = [77013, 40519];

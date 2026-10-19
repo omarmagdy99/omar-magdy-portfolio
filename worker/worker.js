@@ -1,6 +1,6 @@
 // API for the DAX challenge: grading, leaderboard and privacy-light analytics. Static pages are served by the
 // assets binding; this Worker only runs for /api/* and /dax-admin (see run_worker_first in wrangler.jsonc).
-import { grade, CHALLENGES } from './challenges.js';
+import { grade, parseSeeds, CHALLENGES } from './challenges.js';
 
 const DAY = 86400;
 const EVENT_TYPES = new Set(['view', 'start', 'run', 'hint', 'copy_data']);
@@ -146,7 +146,7 @@ async function submit(request, env) {
   const existing = await env.DB.prepare('SELECT name, solved_at FROM dax_solvers WHERE challenge_id = ?1 AND visitor_id = ?2')
     .bind(challenge, body.visitor).first();
 
-  const result = grade(challenge, dax);
+  const result = grade(challenge, dax, { hiddenSeeds: parseSeeds(env.HIDDEN_SEEDS) });
   const status = !result.ok ? 'error' : result.correct ? 'correct' : 'wrong';
   await env.DB.prepare(
     `INSERT INTO dax_submissions (challenge_id, visitor_id, name, dax, status, matched, total, error, created_at, ip_hash, country)
@@ -164,11 +164,16 @@ async function submit(request, env) {
   const stats = await env.DB.prepare(
     'SELECT COUNT(*) AS attempts, MIN(created_at) AS first FROM dax_submissions WHERE challenge_id = ?1 AND visitor_id = ?2'
   ).bind(challenge, body.visitor).first();
-  await env.DB.prepare(
+  const inserted = await env.DB.prepare(
     `INSERT OR IGNORE INTO dax_solvers (challenge_id, visitor_id, name, linkedin, dax, attempts, first_attempt_at, solved_at)
      VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`
   ).bind(challenge, body.visitor, name, linkedin, dax, stats.attempts, stats.first, ts).run();
   memoStore.delete(`board:${challenge}`); memoStore.delete(`stats:${challenge}`);
+  if (!inserted.meta?.changes) {
+    // A concurrent request for the same visitor won the insert: answer from the row that was actually stored.
+    const stored = await env.DB.prepare('SELECT solved_at FROM dax_solvers WHERE challenge_id = ?1 AND visitor_id = ?2').bind(challenge, body.visitor).first();
+    return json({ ok: true, correct: true, alreadySolved: true, rank: await rankOf(env, challenge, stored?.solved_at ?? ts, body.visitor) });
+  }
   return json({ ok: true, correct: true, rank: await rankOf(env, challenge, ts, body.visitor), attempts: stats.attempts });
 }
 

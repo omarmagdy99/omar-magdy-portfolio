@@ -287,6 +287,14 @@ function toBool(v, node) {
   if (typeof v === 'number') return v !== 0;
   throw new DaxError('A true/false value was expected here.', node?.start, node?.end);
 }
+const MAX_TEXT = 10000;
+/** DAX `==`: like `=` but BLANK is only equal to BLANK, and values of different types are never equal. */
+function strictEquals(a, b) {
+  const blankA = a === null || a === undefined, blankB = b === null || b === undefined;
+  if (blankA || blankB) return blankA && blankB;
+  if (typeof a !== typeof b) return false;
+  return compareValues(a, b) === 0;
+}
 function compareValues(a, b) {
   if (a === null || a === undefined) a = typeof b === 'string' ? '' : typeof b === 'boolean' ? false : 0;
   if (b === null || b === undefined) b = typeof a === 'string' ? '' : typeof a === 'boolean' ? false : 0;
@@ -564,13 +572,18 @@ function evalBinary(node, env) {
   const b = evalNode(node.r, env);
   if (a instanceof Tbl || b instanceof Tbl) throw new DaxError('A table was used where a single value is expected.', node.start, node.end);
   switch (op) {
-    case '=': case '==': return compareValues(a, b) === 0;
+    case '=': return compareValues(a, b) === 0;
+    case '==': return strictEquals(a, b);
     case '<>': return compareValues(a, b) !== 0;
     case '<': return compareValues(a, b) < 0;
     case '<=': return compareValues(a, b) <= 0;
     case '>': return compareValues(a, b) > 0;
     case '>=': return compareValues(a, b) >= 0;
-    case '&': return `${a ?? ''}${b ?? ''}`;
+    case '&': {
+      const text = `${a ?? ''}${b ?? ''}`;
+      if (text.length > MAX_TEXT) throw new DaxError(`This text is longer than ${MAX_TEXT.toLocaleString('en-US')} characters. Formulas can't build text that large.`, node.start, node.end);
+      return text;
+    }
     case '+':
       if (isDateStr(a) && typeof b === 'number') return addDays(a, b);
       if (isDateStr(b) && typeof a === 'number') return addDays(b, a);
@@ -736,7 +749,8 @@ function booleanFilter(node, env) {
 
 function buildContext(env, filterNodes) {
   const base = transitioned(env);
-  const argEnv = mkEnv(env, { ctx: base });
+  // Filter arguments see the original filter context (before context transition), as DAX specifies.
+  const argEnv = env;
   const removals = [], adds = [];
   for (const arg of filterNodes) {
     if (arg.t === 'empty') continue;
@@ -911,9 +925,8 @@ FUNCS.EXCEPT = (n, env) => {
 FUNCS.UNION = (n, env) => {
   if (n.args.length < 2) throw new DaxError('UNION needs at least two tables.', n.start, n.end);
   const tabs = n.args.map(a => tableArg(a, env)); tabs.forEach(t => sameShape(tabs[0], t, n));
-  const seen = new Set(), rows = [];
-  for (const t of tabs) for (const r of t.rows) { const k = rowKey(r); if (!seen.has(k)) { seen.add(k); rows.push(r); } }
-  return new Tbl(tabs[0].cols, rows);
+  // Unlike DISTINCT, UNION keeps duplicate rows.
+  return new Tbl(tabs[0].cols, tabs.flatMap(t => t.rows));
 };
 FUNCS.TREATAS = (n, env) => {
   if (n.args.length < 2) throw new DaxError('TREATAS needs a table and the columns to apply it to.', n.start, n.end);
@@ -952,6 +965,21 @@ FUNCS.LOOKUPVALUE = (n, env) => {
   const hit = t.rows.find(r => pairs.every(([ci, v]) => compareValues(r[ci], v) === 0));
   return hit ? hit[c.i] : null;
 };
+/** Follows many-to-one relationships from a row of `table` until `target` is reached (breadth-first, no cycles). */
+function followTo(model, table, row, target) {
+  const queue = [[table, row]], seen = new Set([table]);
+  while (queue.length) {
+    const [cur, r] = queue.shift();
+    for (const rel of model.rels) {
+      if (rel.many !== cur || seen.has(rel.one)) continue;
+      const next = rel.fk[r];
+      if (next < 0) continue;
+      if (rel.one === target) return next;
+      seen.add(rel.one); queue.push([rel.one, next]);
+    }
+  }
+  return -1;
+}
 FUNCS.RELATED = (n, env) => {
   needArgs(n, 1); const { t, c } = colArg(n.args[0], env, 'RELATED');
   for (let k = env.frames.length - 1; k >= 0; k--) {
@@ -959,13 +987,8 @@ FUNCS.RELATED = (n, env) => {
     const direct = f.tbl.indexOf(t.name, c.name);
     if (direct >= 0) return f.tbl.rows[f.i][direct];
     if (f.tbl.base && f.tbl.ids) {
-      let table = f.tbl.base, row = f.tbl.ids[f.i];
-      for (let hop = 0; hop < 4 && row >= 0; hop++) {
-        const rel = env.model.rels.find(r => r.many === table);
-        if (!rel) break;
-        row = rel.fk[row]; table = rel.one;
-        if (row >= 0 && table === t) return t.rows[row][c.i];
-      }
+      const row = followTo(env.model, f.tbl.base, f.tbl.ids[f.i], t);
+      if (row >= 0) return t.rows[row][c.i];
     }
   }
   throw new DaxError('RELATED needs a row context, for example inside SUMX, FILTER or ADDCOLUMNS over a table that is related to this one.', n.start, n.end);
