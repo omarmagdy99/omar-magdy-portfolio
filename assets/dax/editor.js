@@ -43,6 +43,20 @@ export function createEditor(root, model, { value = '', onChange = () => {}, onR
   const input = $('.dax-editor__input'), hl = $('.dax-editor__hl code'), pre = $('.dax-editor__hl'), gutter = $('.dax-editor__gutter');
   const sigEl = $('.dax-sig'), box = $('.dax-suggest'), list = box.querySelector('ul'), docEl = $('.dax-suggest__doc'), statusEl = $('.dax-editor__status');
   const codeEl = $('.dax-editor__code');
+  // Narrow screens: suggestions and signature help are docked under the code instead of floating over it.
+  const dockEl = document.createElement('div');
+  dockEl.className = 'dax-dock';
+  root.insertBefore(dockEl, statusEl);
+  const narrow = matchMedia('(max-width: 760px)');
+  let docked = narrow.matches;
+  function applyDock() {
+    docked = narrow.matches;
+    root.classList.toggle('is-docked', docked);
+    (docked ? dockEl : codeEl).append(sigEl, box);
+    for (const el of [sigEl, box]) { el.style.left = ''; el.style.top = ''; }
+  }
+  narrow.addEventListener('change', applyDock);
+  applyDock();
   input.setAttribute('aria-label', label);
   const listId = `dax-list-${Math.random().toString(36).slice(2, 8)}`;
   list.id = listId; input.setAttribute('aria-controls', listId);
@@ -116,6 +130,7 @@ export function createEditor(root, model, { value = '', onChange = () => {}, onR
     return { x: metrics.pl + (col - 1) * metrics.cw - input.scrollLeft, y: metrics.pt + line * metrics.lh - input.scrollTop };
   }
   function place(el, extraTop = 0) {
+    if (docked) return;
     const { x, y } = caretXY();
     const maxLeft = Math.max(0, codeEl.clientWidth - el.offsetWidth - 8);
     el.style.left = `${Math.max(4, Math.min(x, maxLeft))}px`;
@@ -133,6 +148,7 @@ export function createEditor(root, model, { value = '', onChange = () => {}, onR
     flipIfClipped();
   }
   function flipIfClipped() {
+    if (docked) return;
     const rect = box.getBoundingClientRect(), parent = codeEl.getBoundingClientRect();
     if (rect.bottom > Math.min(window.innerHeight - 8, parent.bottom + 220)) {
       const { y } = caretXY();
@@ -187,9 +203,12 @@ export function createEditor(root, model, { value = '', onChange = () => {}, onR
     });
     sigEl.innerHTML = `<code>${s.fn.name}(${parts.join(', ')})</code><span>${esc(s.fn.doc)}</span>`;
     sigEl.hidden = false;
+    if (docked) return;
     const { x, y } = caretXY();
     sigEl.style.left = `${Math.max(4, Math.min(x, codeEl.clientWidth - sigEl.offsetWidth - 8))}px`;
-    sigEl.style.top = `${Math.max(2, y - metrics.lh - sigEl.offsetHeight - 6)}px`;
+    // above the caret line when there is room, otherwise just below it, so it never covers the line being typed
+    const above = y - metrics.lh - sigEl.offsetHeight - 6;
+    sigEl.style.top = `${above >= 2 ? above : y + 6}px`;
   }
 
   /* ── events ── */

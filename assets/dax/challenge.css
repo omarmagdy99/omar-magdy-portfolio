@@ -229,3 +229,9 @@ html[lang=ar] .dax-cta p{font-family:var(--sans);font-size:22px}
 html[lang=ar] .dax-counters strong{font-family:var(--sans)}
 
 .dax-confetti{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:60}
+
+/* Narrow screens: suggestions and signature help sit under the code (a dock) instead of floating over it. */
+.dax-editor.is-docked .dax-sig,.dax-editor.is-docked .dax-suggest{position:static;width:auto;max-width:none;box-shadow:none;border-width:1px 0 0 0;pointer-events:auto}
+.dax-editor.is-docked .dax-suggest ul{max-height:152px}
+.dax-editor.is-docked .dax-suggest__doc{display:none}
+.dax-editor.is-docked .dax-sig code{white-space:normal}
