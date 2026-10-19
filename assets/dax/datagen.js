@@ -119,6 +119,18 @@ export function growthByMonth(model, { city = null } = {}) {
   });
 }
 
+/** Average order value per month: total sales divided by the number of orders (every Sales row is one order). */
+export function aovByMonth(model, { city = null } = {}) {
+  const cityOf = new Map(model.tables[1].rows.map(r => [r[0], r[2]]));
+  const sum = new Map(), count = new Map();
+  for (const [, date, cust, amount] of model.tables[0].rows) {
+    if (city && cityOf.get(cust) !== city) continue;
+    const ym = date.slice(0, 7);
+    sum.set(ym, (sum.get(ym) ?? 0) + amount); count.set(ym, (count.get(ym) ?? 0) + 1);
+  }
+  return RETENTION.gradedMonths.map(ym => (count.get(ym) ? sum.get(ym) / count.get(ym) : 0));
+}
+
 export function salesByMonth(model) {
   const sales = new Map();
   for (const [, date, , amount] of model.tables[0].rows) sales.set(date.slice(0, 7), (sales.get(date.slice(0, 7)) ?? 0) + amount);

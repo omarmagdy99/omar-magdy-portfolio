@@ -5,6 +5,8 @@ import { generateRetentionModel, RETENTION, PUBLIC_SEED, HIDDEN_SEED } from '../
 import expected from './generated/expected.json' with { type: 'json' };
 
 export const REFERENCE = {
+  aov: `Average Order Value =
+DIVIDE ( [Total Sales], DISTINCTCOUNT ( Sales[OrderID] ) )`,
   growth: `Sales MoM % =
 VAR CurrentSales = [Total Sales]
 VAR PreviousSales =
@@ -22,9 +24,11 @@ RETURN
     COUNTROWS ( INTERSECT ( CurrentCustomers, PreviousCustomers ) )`,
 };
 
+// Levels unlock in order: a visitor must have solved `requires` before submitting.
 export const CHALLENGES = {
-  growth: { id: 'growth', title: 'Did sales grow?', tolerance: 1e-6 },
-  retention: { id: 'retention', title: 'Who came back?', tolerance: 1e-9 },
+  aov: { id: 'aov', level: 1, title: 'Average order value', tolerance: 1e-6, requires: null },
+  growth: { id: 'growth', level: 2, title: 'Did sales grow?', tolerance: 1e-6, requires: 'aov' },
+  retention: { id: 'retention', level: 3, title: 'Who came back?', tolerance: 1e-9, requires: 'growth' },
 };
 
 function scenariosFor(id) {

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="google-site-verification" content="lEohuhl2Y5avAPsc-2yq0gVOLROCFD-lLYtP-0BDqjQ">
+<title>DAX Challenge Level 3: Who came back? | Omar Magdy</title><meta name="description" content="The hardest DAX challenge: measure customer retention by month with real filter-context logic. Write the measure in a Power BI-style editor, get graded instantly and join the leaderboard.">
+<meta name="theme-color" content="#f6f5f0"><meta name="color-scheme" content="light">
+<meta name="robots" content="index,follow,max-image-preview:large">
+<link rel="canonical" href="https://omar.daaw.dev/dax-challenge-retention.html"><link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="website"><meta property="og:site_name" content="Omar Magdy"><meta property="og:locale" content="en_US">
+<meta property="og:title" content="DAX Challenge Level 3: Who came back? | Omar Magdy"><meta property="og:description" content="The hardest DAX challenge: measure customer retention by month with real filter-context logic. Write the measure in a Power BI-style editor, get graded instantly and join the leaderboard."><meta property="og:url" content="https://omar.daaw.dev/dax-challenge-retention.html">
+<meta property="og:image" content="https://omar.daaw.dev/assets/images/social-card.jpg"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="Omar Magdy — Power BI Developer and Data Analyst. Better decisions, built on your data.">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="DAX Challenge Level 3: Who came back? | Omar Magdy"><meta name="twitter:description" content="The hardest DAX challenge: measure customer retention by month with real filter-context logic. Write the measure in a Power BI-style editor, get graded instantly and join the leaderboard."><meta name="twitter:image" content="https://omar.daaw.dev/assets/images/social-card.jpg"><meta name="twitter:image:alt" content="Omar Magdy — Data and Business Intelligence">
+<link rel="preload" href="assets/fonts/manrope.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/fraunces.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/site.css"><script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Person","@id":"https://omar.daaw.dev/#person","name":"Omar Magdy","alternateName":"عمر مجدي","url":"https://omar.daaw.dev/","jobTitle":"Freelance Power BI Developer & Data Analyst","image":"https://omar.daaw.dev/assets/images/omar-magdy.webp","email":"mailto:omarmagdy99860@gmail.com","telephone":"+201120143373","address":{"@type":"PostalAddress","addressLocality":"Cairo","addressCountry":"EG"},"sameAs":["https://github.com/omarmagdy99","https://www.linkedin.com/in/omar-magdy-analyst/"],"knowsAbout":["Power BI","DAX","SQL","Power Query","Data Analysis","Reporting Automation"]},{"@type":"WebSite","@id":"https://omar.daaw.dev/#website","url":"https://omar.daaw.dev/","name":"Omar Magdy — Data & Business Intelligence","inLanguage":["en","ar"],"publisher":{"@id":"https://omar.daaw.dev/#person"}},{"@type":"WebPage","@id":"https://omar.daaw.dev/dax-challenge-retention.html#webpage","url":"https://omar.daaw.dev/dax-challenge-retention.html","name":"DAX Challenge Level 3: Who came back? | Omar Magdy","description":"The hardest DAX challenge: measure customer retention by month with real filter-context logic. Write the measure in a Power BI-style editor, get graded instantly and join the leaderboard.","inLanguage":"en","isPartOf":{"@id":"https://omar.daaw.dev/#website"},"about":{"@id":"https://omar.daaw.dev/#person"}},{"@type":"Service","@id":"https://omar.daaw.dev/#service-1","name":"Power BI Dashboard Development","provider":{"@id":"https://omar.daaw.dev/#person"},"url":"https://omar.daaw.dev/#services","areaServed":"Worldwide","serviceType":"Power BI Dashboard Development"},{"@type":"Service","@id":"https://omar.daaw.dev/#service-2","name":"SQL & Data Modeling","provider":{"@id":"https://omar.daaw.dev/#person"},"url":"https://omar.daaw.dev/#services","areaServed":"Worldwide","serviceType":"SQL & Data Modeling"},{"@type":"Service","@id":"https://omar.daaw.dev/#service-3","name":"Reporting Automation","provider":{"@id":"https://omar.daaw.dev/#person"},"url":"https://omar.daaw.dev/#services","areaServed":"Worldwide","serviceType":"Reporting Automation"}]}</script><script src="assets/site.js" defer></script><link rel="stylesheet" href="assets/dax/challenge.css"><script type="module" src="assets/dax/challenge.js"></script>
+</head><body><a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="container header-inner">
+    <a class="brand" href="index.html"><span class="monogram" aria-hidden="true">om.</span><span><span class="brand-name">Omar Magdy</span><span class="brand-role">Data &amp; Business Intelligence</span></span></a>
+    <button class="menu-toggle" data-menu-toggle aria-controls="navigation" aria-expanded="true" hidden>Menu <span aria-hidden="true">☰</span></button>
+    <nav class="navigation" id="navigation" aria-label="Main navigation">
+      <a href="index.html#work">Selected work</a><a href="index.html#services">Services</a><a href="index.html#about">About</a><a href="dax-challenge.html">DAX Challenge</a><a class="nav-contact" href="index.html#contact">Let’s talk <span class="arrow"><span aria-hidden="true">↗</span></span></a>
+    </nav>
+  </div></header><main id="main"><!--single-language--><div class="container dax-page">
+<a class="text-link back-link" href="index.html"><span aria-hidden="true">←</span> Back to the portfolio</a>
+<nav class="dax-steps" aria-label="Challenge levels" data-dax-steps><ol><li data-level-id="aov"><a href="dax-challenge.html"><span class="dax-steps__n" aria-hidden="true">1</span><span class="dax-steps__text"><strong>Average order</strong><small>about 2 min</small></span><span class="dax-steps__state" data-state></span></a></li><li data-level-id="growth"><a href="dax-challenge-growth.html"><span class="dax-steps__n" aria-hidden="true">2</span><span class="dax-steps__text"><strong>Did sales grow?</strong><small>about 5 min</small></span><span class="dax-steps__state" data-state></span></a></li><li data-level-id="retention" aria-current="step"><a href="dax-challenge-retention.html"><span class="dax-steps__n" aria-hidden="true">3</span><span class="dax-steps__text"><strong>Who came back?</strong><small>about 10 min</small></span><span class="dax-steps__state" data-state></span></a></li></ol></nav>
+<section class="case-hero dax-hero" aria-labelledby="dax-title">
+  <div class="eyebrow">DAX Challenge · Level 3 of 3 · the hard one · about 10 minutes</div>
+  <h1 id="dax-title">Who came back?</h1>
+  <p class="case-lead">Marketing wants one retention number they can trust. In any month, how many customers bought again after buying the month before? This one takes real filter-context thinking.</p>
+  <div class="tags"><span>Table functions</span><span>Filter context</span><span>Time intelligence</span></div>
+  <div class="dax-counters" data-dax-stats hidden aria-label="Challenge activity"><span><strong data-n="visitors">0</strong> visited</span><span><strong data-n="started">0</strong> tried it</span><span><strong data-n="solved">0</strong> solved it</span></div>
+  <div class="hero-actions"><a class="button" href="#workspace">Start the challenge <span aria-hidden="true">↓</span></a><a class="text-link" href="#leaderboard">See the leaderboard <span aria-hidden="true">↗</span></a></div>
+</section>
+
+<section class="dax-brief" aria-labelledby="brief-title">
+  <div class="dax-brief__text">
+    <h2 id="brief-title">The brief</h2>
+    <ul class="dax-rules"><li>A customer is <strong>retained</strong> in a month if they ordered in that month <strong>and</strong> in the month before.</li><li>Each customer counts <strong>once</strong>, however many orders they placed.</li><li>It must work in a visual by month, and respond to the <em>City</em> filter. January looks back to December of the previous year.</li><li>Write <strong>one measure</strong>. Any approach is welcome: you are graded on the numbers it produces, not on how it looks. It is also tested on a second dataset you can’t see.</li></ul>
+    <p class="dax-note">The data is fictional. Download it as CSV to try the measure in your own Power BI Desktop.</p>
+    <p class="dax-downloads"><a href="assets/dax/data/retention-sales.csv" download data-dax-download>Sales.csv</a><a href="assets/dax/data/retention-customers.csv" download data-dax-download>Customers.csv</a><a href="assets/dax/data/retention-date.csv" download data-dax-download>Date.csv</a></p>
+  </div>
+  <figure class="dax-model"><svg class="model-diagram" viewBox="0 0 640 230" role="img" aria-label="Data model: Customers relates to Sales by CustomerID, and Date relates to Sales by OrderDate. Both are one-to-many into Sales." xmlns="http://www.w3.org/2000/svg">
+<title>Data model</title>
+<g class="dm-line"><path d="M180 115 H260"/><path d="M380 115 H460"/></g>
+<g class="dm-card"><rect x="8" y="40" width="172" height="150" rx="3"/><text class="dm-name" x="22" y="68">Customers</text><text x="22" y="96">CustomerID</text><text x="22" y="120">CustomerName</text><text x="22" y="144">City</text></g>
+<g class="dm-card dm-fact"><rect x="260" y="20" width="120" height="190" rx="3"/><text class="dm-name" x="274" y="48">Sales</text><text x="274" y="76">OrderID</text><text x="274" y="100">OrderDate</text><text x="274" y="124">CustomerID</text><text x="274" y="148">Amount</text></g>
+<g class="dm-card"><rect x="460" y="20" width="172" height="190" rx="3"/><text class="dm-name" x="474" y="48">Date</text><text x="474" y="76">Date</text><text x="474" y="100">Year</text><text x="474" y="124">MonthNo · Month</text><text x="474" y="148">YearMonth</text><text x="474" y="172">Quarter</text></g>
+<g class="dm-card-end"><text x="186" y="108">1</text><text x="244" y="108">∗</text><text x="392" y="108">∗</text><text x="446" y="108">1</text></g>
+</svg><figcaption>The model: Customers and Date each filter Sales (one-to-many).</figcaption></figure>
+</section>
+
+<section class="dax-target" aria-labelledby="target-title">
+  <div class="section-heading"><div><div class="eyebrow">The target</div><h2 id="target-title">Your measure should produce this.</h2></div><p>Retained customers by month, 2024. Match every month and you’re in.</p></div>
+  <div class="dax-target__grid">
+    <figure class="dax-chart"><svg class="target-chart" viewBox="0 0 720 300" role="img" aria-label="Retained customers in 2024: Jan 9, Feb 13, Mar 12, Apr 10, May 9, Jun 8, Jul 7, Aug 12, Sep 12, Oct 11, Nov 13, Dec 17." xmlns="http://www.w3.org/2000/svg"><title>Retained customers, 2024</title><g><line class="chart-grid chart-zero" x1="44" x2="708" y1="260.0" y2="260.0"/><text class="chart-axis" x="36" y="264.0" text-anchor="end">0</text></g><g><line class="chart-grid" x1="44" x2="708" y1="30.0" y2="30.0"/><text class="chart-axis" x="36" y="34.0" text-anchor="end">20</text></g><g><rect class="chart-bar" x="54.7" y="156.5" width="34.0" height="103.5" rx="2"/><text class="chart-value" x="71.7" y="150.5" text-anchor="middle">9</text><text class="chart-axis" x="71.7" y="286" text-anchor="middle">Jan</text></g><g><rect class="chart-bar" x="110.0" y="110.5" width="34.0" height="149.5" rx="2"/><text class="chart-value" x="127.0" y="104.5" text-anchor="middle">13</text><text class="chart-axis" x="127.0" y="286" text-anchor="middle">Feb</text></g><g><rect class="chart-bar" x="165.3" y="122.0" width="34.0" height="138.0" rx="2"/><text class="chart-value" x="182.3" y="116.0" text-anchor="middle">12</text><text class="chart-axis" x="182.3" y="286" text-anchor="middle">Mar</text></g><g><rect class="chart-bar" x="220.7" y="145.0" width="34.0" height="115.0" rx="2"/><text class="chart-value" x="237.7" y="139.0" text-anchor="middle">10</text><text class="chart-axis" x="237.7" y="286" text-anchor="middle">Apr</text></g><g><rect class="chart-bar" x="276.0" y="156.5" width="34.0" height="103.5" rx="2"/><text class="chart-value" x="293.0" y="150.5" text-anchor="middle">9</text><text class="chart-axis" x="293.0" y="286" text-anchor="middle">May</text></g><g><rect class="chart-bar" x="331.3" y="168.0" width="34.0" height="92.0" rx="2"/><text class="chart-value" x="348.3" y="162.0" text-anchor="middle">8</text><text class="chart-axis" x="348.3" y="286" text-anchor="middle">Jun</text></g><g><rect class="chart-bar" x="386.7" y="179.5" width="34.0" height="80.5" rx="2"/><text class="chart-value" x="403.7" y="173.5" text-anchor="middle">7</text><text class="chart-axis" x="403.7" y="286" text-anchor="middle">Jul</text></g><g><rect class="chart-bar" x="442.0" y="122.0" width="34.0" height="138.0" rx="2"/><text class="chart-value" x="459.0" y="116.0" text-anchor="middle">12</text><text class="chart-axis" x="459.0" y="286" text-anchor="middle">Aug</text></g><g><rect class="chart-bar" x="497.3" y="122.0" width="34.0" height="138.0" rx="2"/><text class="chart-value" x="514.3" y="116.0" text-anchor="middle">12</text><text class="chart-axis" x="514.3" y="286" text-anchor="middle">Sep</text></g><g><rect class="chart-bar" x="552.7" y="133.5" width="34.0" height="126.5" rx="2"/><text class="chart-value" x="569.7" y="127.5" text-anchor="middle">11</text><text class="chart-axis" x="569.7" y="286" text-anchor="middle">Oct</text></g><g><rect class="chart-bar" x="608.0" y="110.5" width="34.0" height="149.5" rx="2"/><text class="chart-value" x="625.0" y="104.5" text-anchor="middle">13</text><text class="chart-axis" x="625.0" y="286" text-anchor="middle">Nov</text></g><g><rect class="chart-bar" x="663.3" y="64.5" width="34.0" height="195.5" rx="2"/><text class="chart-value" x="680.3" y="58.5" text-anchor="middle">17</text><text class="chart-axis" x="680.3" y="286" text-anchor="middle">Dec</text></g></svg><figcaption>Expected result of the measure, month by month.</figcaption></figure>
+    <table class="dax-table"><caption class="sr-only">Active customers and the expected result by month</caption><thead><tr><th scope="col">Month</th><th scope="col">Active customers</th><th scope="col">Retained (target)</th></tr></thead><tbody><tr><th scope="row">Jan 2024</th><td>–</td><td><strong>9</strong></td></tr><tr><th scope="row">Feb 2024</th><td>–</td><td><strong>13</strong></td></tr><tr><th scope="row">Mar 2024</th><td>–</td><td><strong>12</strong></td></tr><tr><th scope="row">Apr 2024</th><td>–</td><td><strong>10</strong></td></tr><tr><th scope="row">May 2024</th><td>–</td><td><strong>9</strong></td></tr><tr><th scope="row">Jun 2024</th><td>–</td><td><strong>8</strong></td></tr><tr><th scope="row">Jul 2024</th><td>–</td><td><strong>7</strong></td></tr><tr><th scope="row">Aug 2024</th><td>–</td><td><strong>12</strong></td></tr><tr><th scope="row">Sep 2024</th><td>–</td><td><strong>12</strong></td></tr><tr><th scope="row">Oct 2024</th><td>–</td><td><strong>11</strong></td></tr><tr><th scope="row">Nov 2024</th><td>–</td><td><strong>13</strong></td></tr><tr><th scope="row">Dec 2024</th><td>–</td><td><strong>17</strong></td></tr></tbody></table>
+  </div>
+</section>
+
+<section class="dax-workspace" id="workspace" aria-labelledby="workspace-title">
+  <div class="section-heading"><div><div class="eyebrow">Your turn</div><h2 id="workspace-title">Write the measure.</h2></div><p>Type like you would in Power BI: suggestions appear for functions, tables, columns and measures.</p></div>
+  <div class="dax-lock" data-dax-lock hidden role="status"><strong>Level 3 is locked.</strong><p>Solve Level 2 (Did sales grow?) first. It takes a couple of minutes and unlocks this one.</p><a class="button" href="dax-challenge-growth.html">Go to Level 2 <span aria-hidden="true">→</span></a></div>
+  <div class="dax-app" id="dax-app" data-challenge="retention" data-model="assets/dax/data/retention.json" data-target="assets/dax/data/retention-target.json" data-requires="growth">
+    <noscript><p class="dax-note">The interactive editor needs JavaScript. You can still download the data above and solve it in Power BI Desktop.</p></noscript>
+    <aside class="dax-fields" aria-label="Fields"><h3>Fields</h3><div data-dax-fields></div></aside>
+    <div class="dax-main">
+      <div data-dax-editor></div>
+      <div class="dax-actions">
+        <button class="button" type="button" data-dax-run>Run ▷</button>
+        <button class="button secondary" type="button" data-dax-reset>Reset</button>
+        <span class="dax-run-status" data-dax-run-status role="status" aria-live="polite"></span>
+      </div>
+      <div class="dax-result" data-dax-result hidden>
+        <div class="dax-result__head"><h3>Your result vs the target</h3><span class="dax-badge" data-dax-badge></span></div>
+        <div data-dax-chart></div>
+        <div class="dax-table-wrap" data-dax-compare></div>
+      </div>
+      <form class="dax-submit" data-dax-submit novalidate>
+        <h3>Submit your solution</h3>
+        <p>When your result matches, submit it. Correct solutions are ranked by who solved it first.</p>
+        <div class="dax-submit__row">
+          <label>Your name<input name="name" autocomplete="nickname" maxlength="32" required placeholder="How should we list you?"></label>
+          <label>LinkedIn profile <small>(optional)</small><input name="linkedin" inputmode="url" autocomplete="url" maxlength="140" placeholder="https://www.linkedin.com/in/…"></label>
+        </div>
+        <button class="button" type="submit" data-dax-submit-button>Submit my solution</button>
+        <p class="dax-feedback" data-dax-feedback role="status" aria-live="polite"></p>
+        <div class="dax-next" data-dax-next hidden></div>
+        <p class="dax-note">We store your name, optional LinkedIn link, the formula you submit, and anonymous visit counts (a random id in your browser, no cookies, no IP address). Browsers sending Do Not Track or Global Privacy Control are not counted.</p>
+      </form>
+    </div>
+  </div>
+  <details class="dax-data"><summary>Browse the data</summary><div data-dax-data class="dax-data__body"></div></details>
+</section>
+
+<section class="dax-leaderboard" id="leaderboard" aria-labelledby="board-title">
+  <div class="section-heading"><div><div class="eyebrow">Leaderboard · Level 3</div><h2 id="board-title">Solved it.</h2></div><p>Ranked by who got a correct answer first. Attempts show how many tries it took.</p></div>
+  <div class="dax-table-wrap"><table class="dax-table dax-board"><thead><tr><th scope="col">#</th><th scope="col">Name</th><th scope="col">Attempts</th><th scope="col">Time to solve</th><th scope="col">Solved</th></tr></thead><tbody data-dax-board><tr><td colspan="5" class="dax-empty">Loading the leaderboard…</td></tr></tbody></table></div>
+</section>
+
+<section class="dax-hints" aria-labelledby="hints-title">
+  <h2 id="hints-title">Stuck? Two nudges.</h2>
+  <details data-dax-hint="1"><summary>Hint 1: how to think about it</summary><p>Think in tables, not numbers. You need the list of customers who bought in the current month, and the list of customers who bought in the previous month. Then the question is which customers are on both lists.</p></details>
+  <details data-dax-hint="2"><summary>Hint 2: the tools</summary><p>One function compares two tables by their rows; a time-intelligence function can shift the dates in the filter context by a month. Variables (<code>VAR</code>) keep the two lists readable. There is more than one way to get there.</p></details>
+  <p class="dax-note">The full walkthrough, with several approaches, will be shared on LinkedIn once the challenge closes.</p>
+</section>
+
+<section class="dax-cta"><p>Need this kind of logic in your own reports?</p><a class="button secondary" href="index.html#contact">Talk to Omar <span aria-hidden="true">↗</span></a></section>
+</div></main><footer class="site-footer"><div class="container footer-inner"><span>© 2026 Omar Magdy · Built with care, in Cairo.</span><div class="footer-links"><a href="https://www.linkedin.com/in/omar-magdy-analyst/" target="_blank" rel="noopener noreferrer">LinkedIn <span aria-hidden="true">↗</span></a><a href="https://github.com/omarmagdy99" target="_blank" rel="noopener noreferrer">GitHub <span aria-hidden="true">↗</span></a><a href="mailto:omarmagdy99860@gmail.com">Email <span aria-hidden="true">↗</span></a><a href="index.html#work">Selected work</a><a href="dax-challenge.html">DAX Challenge</a></div></div></footer></body></html>

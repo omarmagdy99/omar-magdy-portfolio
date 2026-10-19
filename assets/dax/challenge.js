@@ -61,11 +61,13 @@ async function init(root) {
 
   /* editor */
   const starter = target.starter;
-  const tolerance = target.format === 'percent' ? 1e-6 : 1e-9;
+  const tolerance = target.format === 'count' ? 1e-9 : 1e-6;
   const same = (a, b) => typeof a === 'number' && isFinite(a) && Math.abs(a - b) <= tolerance;
   const fmt = v => (v === null || v === undefined ? '(blank)' : typeof v !== 'number' ? String(v)
-    : target.format === 'percent' ? `${(v * 100).toFixed(1)}%  (${Math.round(v * 1e6) / 1e6})` : String(Math.round(v * 1000) / 1000));
-  const fmtShort = v => (target.format === 'percent' ? `${Math.round(v * 100)}%` : String(v));
+    : target.format === 'percent' ? `${(v * 100).toFixed(1)}%  (${Math.round(v * 1e6) / 1e6})`
+      : target.format === 'money' ? v.toFixed(2) : String(Math.round(v * 1000) / 1000));
+  const fmtShort = v => (target.format === 'percent' ? `${Math.round(v * 100)}%` : String(Math.round(v)));
+  const niceStep = range => { const raw = range / 3 || 1, p = 10 ** Math.floor(Math.log10(raw)), m = raw / p; return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * p; };
   const draftKey = `dax.draft.${challenge}`;
   let started = false;
   const editor = createEditor($(root, '[data-dax-editor]'), model, {
@@ -168,7 +170,7 @@ async function init(root) {
     const cap = Math.max(...target.values.map(Math.abs)) * 3 || 1;
     const clamp = v => Math.max(-cap, Math.min(cap, num(v)));
     const all = [...target.values, ...values.map(clamp), 0];
-    const step = target.format === 'percent' ? 0.2 : 5;
+    const step = niceStep(Math.max(...all) - Math.min(...all));
     const hi = Math.ceil(Math.max(...all) / step) * step, lo = Math.floor(Math.min(...all) / step) * step;
     const y = v => top + (H - top - bottom) * (1 - (v - lo) / (hi - lo || 1));
     const band = (W - left - 8) / target.months.length;
@@ -215,8 +217,9 @@ async function init(root) {
     try {
       const res = await fetch('/api/dax/submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ challenge, visitor, name, linkedin, dax: editor.value }) });
       const data = await res.json();
-      if (!data.ok) say(data.error || 'Something went wrong. Please try again.', 'is-error');
+      if (!data.ok) { say(data.error || 'Something went wrong. Please try again.', 'is-error'); if (data.locked) refreshProgress(); }
       else if (data.correct) {
+        solved.add(challenge); store('set', 'dax.solved', JSON.stringify([...solved])); applyProgress();
         say(data.alreadySolved ? `Correct again! You’re already on the leaderboard at #${data.rank}.` : `🎉 Correct! You’re #${data.rank} on the leaderboard${data.attempts ? ` after ${data.attempts} attempt${data.attempts === 1 ? '' : 's'}` : ''}.`, 'is-success');
         await loadBoard();
         document.getElementById('leaderboard').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
@@ -250,6 +253,40 @@ async function init(root) {
     }
   }
   loadBoard();
+
+  /* levels: stepper state, unlock and the "next level" prompt. The server enforces the lock; this only reflects it. */
+  const requires = root.dataset.requires;
+  let progressKnown = false;
+  let solved = new Set();
+  try { solved = new Set(JSON.parse(store('get', 'dax.solved') || '[]')); } catch { /* ignore */ }
+  const lockPanel = document.querySelector('[data-dax-lock]'), nextBox = $(root, '[data-dax-next]');
+  function applyProgress() {
+    const items = [...document.querySelectorAll('[data-dax-steps] li')];
+    items.forEach((li, i) => {
+      const id = li.dataset.levelId, done = solved.has(id);
+      const locked = progressKnown && i > 0 && !solved.has(items[i - 1].dataset.levelId) && !done;
+      li.classList.toggle('is-solved', done); li.classList.toggle('is-locked', locked);
+      li.querySelector('[data-state]').textContent = done ? '✓ solved' : locked ? '🔒 locked' : '';
+    });
+    const locked = Boolean(requires) && progressKnown && !solved.has(requires);
+    if (lockPanel) lockPanel.hidden = !locked;
+    root.classList.toggle('is-locked', locked);
+    root.querySelectorAll('textarea, button, input').forEach(c => { c.disabled = locked; });
+    if (!locked) submitButton.disabled = false;
+    if (nextBox && root.dataset.nextFile) {
+      nextBox.hidden = !solved.has(challenge);
+      if (!nextBox.hidden && !nextBox.firstChild) nextBox.append(el('strong', {}, 'Level complete. '), el('a', { className: 'button', href: root.dataset.nextFile }, `Continue to ${root.dataset.nextName} →`));
+    }
+  }
+  async function refreshProgress() {
+    try {
+      const d = await fetch('/api/dax/progress', { headers: { 'X-Visitor': visitor }, cache: 'no-store' }).then(r => r.json());
+      if (d.ok) { solved = new Set(d.solved); progressKnown = true; store('set', 'dax.solved', JSON.stringify([...solved])); }
+    } catch { /* offline: leave everything unlocked, the server still checks */ }
+    applyProgress();
+  }
+  applyProgress();
+  refreshProgress();
 
   const counters = document.querySelector('[data-dax-stats]');
   fetch(`/api/dax/stats?challenge=${challenge}`).then(r => r.json()).then(s => {

@@ -2,7 +2,7 @@ import { readFile, writeFile, mkdir, cp, rm } from 'node:fs/promises';
 import { resolve, join, relative } from 'node:path';
 import { projects } from '../content/projects.mjs';
 import { addSearchPages } from '../content/search-pages.mjs';
-import { addDaxPages } from '../content/dax-challenge-page.mjs';
+import { addDaxPages, DAX_REWRITES } from '../content/dax-challenge-page.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 const config = JSON.parse(await readFile(join(root, 'site.config.json'), 'utf8'));
@@ -172,7 +172,7 @@ const indexedPaths = [...generated.keys()].filter(p => p.endsWith('.html') && p 
 generated.set('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${indexedPaths.map(path=>`\n  <url><loc>${esc(url(path))}</loc></url>`).join('')}\n</urlset>\n`);
 generated.set('.nojekyll', '');
 generated.set('_headers', `/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=()\n  X-Frame-Options: DENY\n  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; frame-src https://www.linkedin.com; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action mailto:; frame-ancestors 'none'\n/assets/*\n  Cache-Control: public, max-age=3600, stale-while-revalidate=86400\n`);
-generated.set('_redirects', `/ /index.html 200\n/index.html / 301\n/projects/sales-retail /projects/sales-retail.html 301\n/projects/adventureworks-sales /projects/adventureworks-sales.html 301\n/projects/call-center /projects/call-center.html 301\n/projects/hr-analytics /projects/hr-analytics.html 301\n/dax-challenge /dax-challenge.html 200\n`);
+generated.set('_redirects', `/ /index.html 200\n/index.html / 301\n/projects/sales-retail /projects/sales-retail.html 301\n/projects/adventureworks-sales /projects/adventureworks-sales.html 301\n/projects/call-center /projects/call-center.html 301\n/projects/hr-analytics /projects/hr-analytics.html 301\n${DAX_REWRITES.join('\n')}\n`);
 
 const dist = resolve(root,'dist');
 if (relative(root, dist) !== 'dist') throw new Error('Unsafe output directory');

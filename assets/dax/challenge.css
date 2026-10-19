@@ -189,3 +189,24 @@
 
 .chart-zero{stroke:#9fb3a7}
 .chart-bar--neg{fill:#b7634c}
+
+/* levels */
+.dax-steps{margin-bottom:34px}
+.dax-steps ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.dax-steps a{display:grid;grid-template-columns:34px 1fr;gap:4px 12px;align-items:center;text-decoration:none;border:1px solid var(--line);background:var(--white);padding:12px 14px;min-height:66px;position:relative}
+.dax-steps li[aria-current="step"] a{border-color:var(--green);box-shadow:inset 0 -3px 0 var(--green)}
+.dax-steps__n{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:13px;background:#e3ebe4;color:var(--green)}
+.dax-steps li.is-solved .dax-steps__n{background:var(--green);color:#fff}
+.dax-steps__text strong{display:block;font-size:13px;line-height:1.3}
+.dax-steps__text small{font-size:11px;color:var(--muted)}
+.dax-steps__state{grid-column:2;font-size:11px;font-weight:700;color:var(--ok);min-height:0}
+.dax-steps li.is-locked a{opacity:.6}
+.dax-steps li.is-locked .dax-steps__state{color:var(--muted)}
+.dax-lock{border:1px solid #e4d2a5;background:#f8f0dc;padding:20px 22px;margin-bottom:18px;display:grid;gap:8px;justify-items:start}
+.dax-lock p{color:#6b5316;font-size:13px}
+.dax-app.is-locked{opacity:.45;filter:grayscale(.4)}
+.dax-next{display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:14px 16px;background:#e6f1ea;border:1px solid #b6d9c5}
+.dax-next strong{color:var(--ok)}
+.admin-select{margin-bottom:18px;display:flex;gap:10px;align-items:center;font-size:13px}
+.admin-select select{font:inherit;padding:8px 10px;border:1px solid #b9c4b9;background:#fff}
+@media(max-width:760px){.dax-steps ol{grid-template-columns:1fr}.dax-steps a{min-height:0}}

@@ -350,8 +350,23 @@ function addEntry(ctx, entry, keep = false) {
   ctx.filters.push(entry);
 }
 
+let ENTRY_SEQ = 0;
+const MASK_CACHE_LIMIT = 4000;
+
+/** A mask only depends on the filter entries that reach the table, so entries get ids and masks are shared between contexts. */
+function maskKey(model, ctx, table) {
+  let own = '';
+  for (const e of ctx.filters) if (e.tbl === table) own += `${(e.id ??= ++ENTRY_SEQ)},`;
+  let key = `${table.name}:${own}`;
+  for (const r of model.rels) if (r.many === table) key += `|${maskKey(model, ctx, r.one)}`;
+  return key;
+}
+
 function visibleMask(model, ctx, table) {
   if (ctx.cache.has(table)) return ctx.cache.get(table);
+  const shared = (model.maskCache ??= new Map());
+  const key = maskKey(model, ctx, table);
+  if (shared.has(key)) { const hit = shared.get(key); ctx.cache.set(table, hit); return hit; }
   let mask = null;
   for (const e of ctx.filters) {
     if (e.tbl !== table) continue;
@@ -361,7 +376,7 @@ function visibleMask(model, ctx, table) {
       for (let i = 0; i < table.n; i++) if (mask[i] && !e.set.has(keys[i])) mask[i] = 0;
     } else {
       const ks = e.cols.map(c => model.colKeys(table, c));
-      for (let i = 0; i < table.n; i++) if (mask[i] && !e.set.has(ks.map(k => k[i]).join('\u0001'))) mask[i] = 0;
+      for (let i = 0; i < table.n; i++) if (mask[i] && !e.set.has(ks.map(k => k[i]).join(''))) mask[i] = 0;
     }
   }
   for (const r of model.rels) {
@@ -371,6 +386,8 @@ function visibleMask(model, ctx, table) {
     mask ??= new Uint8Array(table.n).fill(1);
     for (let i = 0; i < table.n; i++) if (mask[i] && (r.fk[i] < 0 || !parent[r.fk[i]])) mask[i] = 0;
   }
+  if (shared.size >= MASK_CACHE_LIMIT) shared.clear();
+  shared.set(key, mask);
   ctx.cache.set(table, mask);
   return mask;
 }
@@ -647,6 +664,22 @@ function collectCols(node, out = new Map()) {
 const MODIFIERS = new Set(['ALL', 'ALLEXCEPT', 'ALLSELECTED', 'REMOVEFILTERS']);
 
 function tblToEntries(env, tb) {
+  const byTbl = (env.model.entryByTbl ??= new WeakMap());
+  const seen = byTbl.get(tb);
+  if (seen) return seen;
+  const result = tblToEntriesShared(env, tb);
+  byTbl.set(tb, result);
+  return result;
+}
+function tblToEntriesShared(env, tb) {
+  const memo = (env.model.entryMemo ??= new Map());
+  const memoKey = tb.rows.length <= 800 ? `${tb.base ? tb.base.name : ''}|${tb.cols.map(c => `${c.t}.${c.c}`).join(',')}|${tb.timeIntel ? 1 : 0}|${tb.rows.map(r => r.map(keyOf).join('')).join('')}` : null;
+  if (memoKey && memo.has(memoKey)) return memo.get(memoKey);
+  const entries = tblToEntriesUncached(env, tb);
+  if (memoKey) { if (memo.size > 2000) memo.clear(); memo.set(memoKey, entries); }
+  return entries;
+}
+function tblToEntriesUncached(env, tb) {
   const entries = [];
   if (tb.base) {
     const uc = env.model.uniqueCol(tb.base);
@@ -975,18 +1008,33 @@ FUNCS.EOMONTH = (n, env) => {
 };
 
 /** The dates a time-intelligence function works from: a date column (visible values) or a table. */
+const NO_MASK = {};
 function dateInput(node, env) {
   if (node.t === 'col') {
     const { t, c } = resolveCol(env, node);
-    const vals = [...new Set(visibleValues(env, t, c.i).filter(isDateStr))].sort();
-    return { t, c, dates: vals };
+    const mask = visibleMask(env.model, env.ctx, t) ?? NO_MASK;
+    const byMask = (env.model.dateInputs ??= new WeakMap());
+    let perCol = byMask.get(mask);
+    if (!perCol) byMask.set(mask, perCol = new Map());
+    let hit = perCol.get(c.i);
+    if (!hit) {
+      const vals = [...new Set(visibleValues(env, t, c.i).filter(isDateStr))].sort();
+      perCol.set(c.i, hit = { t, c, dates: vals, memo: new Map() });
+    }
+    return hit;
   }
   const tb = tableArg(node, env, 'a date column');
   const col = tb.cols[0];
   const t = col.t ? env.model.table(col.t) : null;
   const c = t?.colMap.get(col.c.toLowerCase());
   if (!t || !c) throw new DaxError('A date column from the model was expected here.', node.start, node.end);
-  return { t, c, dates: [...new Set(tb.rows.map(r => r[0]).filter(isDateStr))].sort() };
+  return { t, c, dates: [...new Set(tb.rows.map(r => r[0]).filter(isDateStr))].sort(), memo: new Map() };
+}
+/** Time-intelligence results are pure functions of (visible dates, arguments), so repeat calls share one table. */
+function memoDate(inp, key, make) {
+  let v = inp.memo.get(key);
+  if (!v) inp.memo.set(key, v = make());
+  return v;
 }
 function dateTbl(t, c, dates) { return new Tbl([{ t: t.name, c: c.name }], dates.map(d => [d]), { timeIntel: true }); }
 function unitOf(node) {
@@ -1008,11 +1056,11 @@ function shiftDates(dates, n, unit) {
   return dates.map(d => addMonthsMonthEnd(d, k));
 }
 FUNCS.DATEADD = (n, env) => {
-  needArgs(n, 3); const { t, c, dates } = dateInput(n.args[0], env);
+  needArgs(n, 3); const inp = dateInput(n.args[0], env); const { t, c, dates } = inp;
   const k = toNumber(scalarArg(n.args[1], env), n.args[1]); const unit = unitOf(n.args[2]);
-  return dateTbl(t, c, [...new Set(shiftDates(dates, k, unit))].sort());
+  return memoDate(inp, `DATEADD|${k}|${unit}`, () => dateTbl(t, c, [...new Set(shiftDates(dates, k, unit))].sort()));
 };
-FUNCS.SAMEPERIODLASTYEAR = (n, env) => { needArgs(n, 1); const { t, c, dates } = dateInput(n.args[0], env); return dateTbl(t, c, [...new Set(shiftDates(dates, -1, 'YEAR'))].sort()); };
+FUNCS.SAMEPERIODLASTYEAR = (n, env) => { needArgs(n, 1); const inp = dateInput(n.args[0], env); const { t, c, dates } = inp; return memoDate(inp, 'SPLY', () => dateTbl(t, c, [...new Set(shiftDates(dates, -1, 'YEAR'))].sort())); };
 FUNCS.PARALLELPERIOD = (n, env) => {
   needArgs(n, 3); const { t, c, dates } = dateInput(n.args[0], env);
   const k = toNumber(scalarArg(n.args[1], env)); const unit = unitOf(n.args[2]);
@@ -1025,7 +1073,12 @@ FUNCS.PARALLELPERIOD = (n, env) => {
 };
 function relativePeriod(name, k, unit) {
   FUNCS[name] = (n, env) => {
-    needArgs(n, 1); const { t, c, dates } = dateInput(n.args[0], env);
+    needArgs(n, 1); const inp = dateInput(n.args[0], env); const { t, c, dates } = inp;
+    return memoDate(inp, name, () => relativeTbl(t, c, dates, k, unit));
+  };
+}
+function relativeTbl(t, c, dates, k, unit) {
+  {
     if (!dates.length) return dateTbl(t, c, []);
     if (unit === 'DAY') return dateTbl(t, c, [addDays(dates[0], k)]);
     const mult = unit === 'MONTH' ? 1 : unit === 'QUARTER' ? 3 : 12;
@@ -1034,7 +1087,7 @@ function relativePeriod(name, k, unit) {
     const out = [];
     for (let mi = startIdx + k * mult; mi < startIdx + k * mult + mult; mi++) { const y = Math.floor(mi / 12), m = ((mi % 12) + 12) % 12 + 1; for (let d = 1; d <= daysIn(y, m); d++) out.push(fmtDate(y, m, d)); }
     return dateTbl(t, c, out);
-  };
+  }
 }
 relativePeriod('PREVIOUSDAY', -1, 'DAY'); relativePeriod('NEXTDAY', 1, 'DAY');
 relativePeriod('PREVIOUSMONTH', -1, 'MONTH'); relativePeriod('NEXTMONTH', 1, 'MONTH');

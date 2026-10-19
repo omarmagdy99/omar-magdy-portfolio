@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Model, compile, evaluate, validate, DaxError } from '../assets/dax/engine.js';
-import { generateRetentionModel, retentionByMonth, growthByMonth, PUBLIC_SEED, HIDDEN_SEED } from '../assets/dax/datagen.js';
+import { generateRetentionModel, retentionByMonth, growthByMonth, aovByMonth, PUBLIC_SEED, HIDDEN_SEED } from '../assets/dax/datagen.js';
 import { grade as gradeAny, REFERENCE, evaluateSeries } from '../worker/challenges.js';
 const REFERENCE_DAX = REFERENCE.retention;
 const grade = (id, dax) => gradeAny(id, dax);
@@ -140,3 +140,28 @@ test('growth: engine agrees with plain JavaScript on public and hidden data', ()
 });
 for (const [name, dax] of Object.entries(GROWTH_OK)) test(`growth accepts: ${name}`, () => { const r = grade('growth', dax); assert.equal(r.ok, true, r.error); assert.equal(r.correct, true, `matched ${r.matched}/${r.total} (${r.stage})`); });
 for (const [name, dax] of Object.entries(GROWTH_WRONG)) test(`growth rejects: ${name}`, () => { const r = grade('growth', dax); assert.equal(r.ok, true, r.error); assert.equal(r.correct, false); });
+
+/* ───────── challenge #1: average order value (the 2-minute one) ───────── */
+const AOV_OK = {
+  reference: REFERENCE.aov,
+  'AVERAGE of Amount': 'AVERAGE ( Sales[Amount] )',
+  'SUM / COUNTROWS': 'DIVIDE ( SUM ( Sales[Amount] ), COUNTROWS ( Sales ) )',
+  'AVERAGEX over orders': 'AVERAGEX ( Sales, Sales[Amount] )',
+};
+const AOV_WRONG = {
+  'total sales only': '[Total Sales]',
+  'sales per customer, not per order': 'DIVIDE ( [Total Sales], DISTINCTCOUNT ( Sales[CustomerID] ) )',
+  'order count': 'DISTINCTCOUNT ( Sales[OrderID] )',
+};
+test('aov: engine agrees with plain JavaScript on public and hidden data', () => {
+  const run = (seed, extra = []) => evaluateSeries(model(seed), compile(REFERENCE.aov), extra);
+  const close = (a, b) => a.every((v, i) => Math.abs(v - b[i]) < 1e-9);
+  assert.ok(close(run(PUBLIC_SEED), aovByMonth(generateRetentionModel(PUBLIC_SEED))));
+  assert.ok(close(run(HIDDEN_SEED, [{ table: 'Customers', column: 'City', values: ['Cairo'] }]), aovByMonth(generateRetentionModel(HIDDEN_SEED), { city: 'Cairo' })));
+});
+for (const [name, dax] of Object.entries(AOV_OK)) test(`aov accepts: ${name}`, () => { const r = grade('aov', dax); assert.equal(r.ok, true, r.error); assert.equal(r.correct, true, `matched ${r.matched}/${r.total} (${r.stage})`); });
+for (const [name, dax] of Object.entries(AOV_WRONG)) test(`aov rejects: ${name}`, () => { const r = grade('aov', dax); assert.equal(r.ok, true, r.error); assert.equal(r.correct, false); });
+test('levels unlock in order', async () => {
+  const { CHALLENGES } = await import('../worker/challenges.js');
+  assert.deepEqual(Object.values(CHALLENGES).sort((a, b) => a.level - b.level).map(c => [c.id, c.requires]), [['aov', null], ['growth', 'aov'], ['retention', 'growth']]);
+});

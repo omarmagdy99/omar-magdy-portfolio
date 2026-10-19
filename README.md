@@ -97,3 +97,4 @@ An interactive DAX challenge with a Power BI-style editor, instant grading, a le
 - `npm test` runs the engine and editor tests; `npm run gen:dax` regenerates the sample data and expected answers.
 - Local: copy `.dev.vars` (ADMIN_TOKEN, HASH_SALT), `npx wrangler d1 migrations apply DB --local`, then `npm run dev:api`.
 - Deploy (one-time): `npx wrangler d1 create omar-portfolio` → put the id in `wrangler.jsonc` → `npx wrangler d1 migrations apply DB --remote` → `npx wrangler secret put ADMIN_TOKEN` and `HASH_SALT` → `npm run deploy`. Stats live at `/dax-admin`.
+- Three levels unlock in order (average order value, month-over-month growth, retention). The server enforces the lock; `scripts/load-test.mjs` simulates many visitors against a local `wrangler dev`.

@@ -1,6 +1,8 @@
 // Owner-only stats page. The token is typed here, kept for the tab session only, and sent as a Bearer header.
 const root = document.getElementById('admin-root');
 const KEY = 'dax.admin.token';
+const LEVELS = [['aov', 'Level 1: Average order value'], ['growth', 'Level 2: Did sales grow?'], ['retention', 'Level 3: Who came back?']];
+let current = 'aov';
 const get = () => { try { return sessionStorage.getItem(KEY) || ''; } catch { return ''; } };
 const put = v => { try { v ? sessionStorage.setItem(KEY, v) : sessionStorage.removeItem(KEY); } catch { /* ignore */ } };
 
@@ -42,7 +44,7 @@ async function call(path, init = {}) {
 async function load() {
   if (!get()) return login();
   let d;
-  try { d = await call('/api/dax/admin/stats?challenge=growth'); } catch (e) {
+  try { d = await call(`/api/dax/admin/stats?challenge=${current}`); } catch (e) {
     if (e.code === 401) { put(''); return login('That token was not accepted.'); }
     return login('Could not load the stats.');
   }
@@ -62,7 +64,10 @@ async function load() {
     return el('tr', {}, el('td', {}, s.name + (s.hidden ? ' (hidden)' : '')), el('td', {}, String(s.attempts)), el('td', {}, when(s.solved_at)), el('td', {}, b));
   });
 
+  const pick = el('select', { ariaLabel: 'Challenge' }, ...LEVELS.map(([id, label]) => el('option', { value: id, selected: id === current }, label)));
+  pick.addEventListener('change', () => { current = pick.value; load(); });
   root.replaceChildren(
+    el('label', { className: 'admin-select' }, 'Challenge ', pick),
     el('div', { className: 'admin-kpis' },
       kpi(f.visitors, 'visitors'), kpi(f.started, 'started'), kpi(f.submitted, 'submitted'), kpi(f.solved, 'solved'),
       kpi(pct(r.startRate), 'visitors who started'), kpi(pct(r.solveRate), 'submitters who solved'),

@@ -1,6 +1,6 @@
 # DAX Challenge — status
 
-Page `/dax-challenge`: challenge #1 "Did sales grow?" (month-over-month growth, made easier at the user's request; the
+Three levels (aov → growth → retention) at `/dax-challenge`, `/dax-challenge-growth`, `/dax-challenge-retention`; each unlocks after the previous is solved (enforced in the Worker). Original note: challenge #1 "Did sales grow?" (month-over-month growth, made easier at the user's request; the
 harder "Who came back?" retention challenge is fully implemented and tested as `retention`, ready to use as #2).
 
 ## Built and verified (local end-to-end in the browser with `wrangler dev` + local D1)
@@ -14,3 +14,6 @@ harder "Who came back?" retention challenge is fully implemented and tested as `
 3. Optional: PNG of the target chart for the LinkedIn post, Arabic page, solution reveal (`REVEAL_SOLUTION` in `content/dax-challenge-page.mjs` only changes a sentence for now), wire retention as challenge #2.
 4. Editor auto-pairing of brackets/quotes was not exercised by the browser tool (it inserts text without key events); worth a manual try.
 5. Engine supports a subset of DAX (~65 functions); unsupported ones give a clear message. Add functions in `assets/dax/engine.js` + `functions.js` (a test keeps them in sync).
+
+## Load / performance (measured locally)
+- 100 simultaneous visitors, 1,500 requests, 300 correct solves: 0 errors, lock enforced. Grading of the heaviest solution ≈ 6 ms warm after caching (was 21 ms). Leaderboard/stats are cached per isolate (10 s / 60 s). Per-IP submit limit is 200 / 10 min.
