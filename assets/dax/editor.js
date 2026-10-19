@@ -23,21 +23,21 @@ export function createEditor(root, model, { value = '', onChange = () => {}, onR
   root.classList.add('dax-editor');
   root.setAttribute('dir', 'ltr'); // code is always left-to-right, even on Arabic pages
   root.innerHTML = `
-    <div class="dax-editor__bar"><span class="dax-editor__title">${S.title}</span><span class="dax-editor__hint">${S.hintHtml}</span></div>
-    <div class="dax-editor__body">
-      <div class="dax-editor__gutter" aria-hidden="true"></div>
-      <div class="dax-editor__code">
-        <pre class="dax-editor__hl" aria-hidden="true"><code></code></pre>
-        <textarea class="dax-editor__input" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" wrap="off" rows="10"
+    <div class="dax-editor__bar" dir="ltr"><span class="dax-editor__title">${S.title}</span><span class="dax-editor__hint">${S.hintHtml}</span></div>
+    <div class="dax-editor__body" dir="ltr">
+      <div class="dax-editor__gutter" aria-hidden="true" dir="ltr"></div>
+      <div class="dax-editor__code" dir="ltr">
+        <pre class="dax-editor__hl" aria-hidden="true" dir="ltr"><code></code></pre>
+        <textarea class="dax-editor__input" dir="ltr" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" wrap="off" rows="10"
           role="combobox" aria-autocomplete="list" aria-expanded="false" aria-haspopup="listbox"></textarea>
-        <div class="dax-sig" hidden role="status"></div>
-        <div class="dax-suggest" hidden>
-          <ul role="listbox" aria-label="${S.suggestions}"></ul>
-          <div class="dax-suggest__doc"></div>
+        <div class="dax-sig" hidden role="status" dir="ltr"></div>
+        <div class="dax-suggest" hidden dir="ltr">
+          <ul role="listbox" aria-label="${S.suggestions}" dir="ltr"></ul>
+          <div class="dax-suggest__doc" dir="ltr"></div>
         </div>
       </div>
     </div>
-    <div class="dax-editor__status" role="status" aria-live="polite"></div>`;
+    <div class="dax-editor__status" role="status" aria-live="polite" dir="ltr"></div>`;
   const $ = s => root.querySelector(s);
   const input = $('.dax-editor__input'), hl = $('.dax-editor__hl code'), pre = $('.dax-editor__hl'), gutter = $('.dax-editor__gutter');
   const sigEl = $('.dax-sig'), box = $('.dax-suggest'), list = box.querySelector('ul'), docEl = $('.dax-suggest__doc'), statusEl = $('.dax-editor__status');
@@ -51,6 +51,7 @@ export function createEditor(root, model, { value = '', onChange = () => {}, onR
   function measure() {
     const probe = document.createElement('span');
     probe.className = 'dax-editor__probe'; probe.textContent = 'M'.repeat(40);
+    probe.setAttribute('dir', 'ltr');
     codeEl.appendChild(probe);
     const cw = probe.getBoundingClientRect().width / 40;
     probe.remove();

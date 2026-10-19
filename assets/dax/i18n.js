@@ -46,13 +46,6 @@ export const EN = {
   errLong: 'That formula is too long (4,000 characters max).',
   errEmpty: 'Write your measure first.',
   errServer: 'Something went wrong on our side. Please try again.',
-  edTitle: 'Measure',
-  edHint: '<kbd>Ctrl</kbd>+<kbd>Space</kbd> suggestions · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> run',
-  edLabel: 'DAX measure editor',
-  edEmpty: 'Write a measure, for example: Total Sales = SUM ( Sales[Amount] )',
-  edOk: '✓ No problems found',
-  edProblem: '⚠ {message} (line {line}, column {col})',
-  edSuggestions: 'Suggestions',
 };
 
 export const AR = {
@@ -101,13 +94,6 @@ export const AR = {
   errLong: 'المعادلة طويلة جدًا (الحد الأقصى 4000 حرف).',
   errEmpty: 'اكتب الـ measure أولًا.',
   errServer: 'حدث خطأ من جانبنا. حاول مرة أخرى.',
-  edTitle: 'Measure',
-  edHint: '<kbd>Ctrl</kbd>+<kbd>Space</kbd> اقتراحات · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> تشغيل',
-  edLabel: 'محرر DAX',
-  edEmpty: 'اكتب measure، مثال: Total Sales = SUM ( Sales[Amount] )',
-  edOk: '✓ لا توجد مشاكل',
-  edProblem: '⚠ {message} (السطر {line}، العمود {col})',
-  edSuggestions: 'اقتراحات',
 };
 
 export const MONTHS = {

@@ -80,10 +80,6 @@ async function init(root) {
       store('set', draftKey, text);
       if (!started && text.trim() && text !== starter) { started = true; track('start'); }
     },
-    strings: {
-      title: t('edTitle'), hintHtml: t('edHint'), label: t('edLabel'), empty: t('edEmpty'), ok: t('edOk'), suggestions: t('edSuggestions'),
-      problem: (message, line, col) => t('edProblem', { message, line, col }),
-    },
   });
 
   /* fields pane */
