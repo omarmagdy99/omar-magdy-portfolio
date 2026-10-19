@@ -8,7 +8,7 @@
     "dev": "node scripts/serve.mjs",
     "check": "node scripts/check.mjs",
     "deploy": "npm run build && npx wrangler deploy",
-    "test": "node --test scripts/test-dax.mjs scripts/test-intellisense.mjs scripts/test-i18n.mjs",
+    "test": "node --test scripts/test-dax.mjs scripts/test-intellisense.mjs scripts/test-i18n.mjs scripts/test-site-links.mjs",
     "gen:dax": "node scripts/gen-dax-data.mjs",
     "dev:api": "npm run build && wrangler dev",
     "security": "node scripts/security-test.mjs",

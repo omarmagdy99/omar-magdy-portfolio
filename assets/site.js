@@ -1,3 +1,13 @@
+const isArabic = document.documentElement.lang === 'ar';
+const contactText = isArabic ? {
+  greeting: 'مرحبًا عمر،', service: 'الخدمة', name: 'الاسم', reply: 'بريد الرد',
+  subject: 'استفسار عن مشروع', ready: 'المسودة جاهزة. افتحها في تطبيق البريد وراجعها قبل الإرسال. لو التطبيق لم يفتح، تواصل مع عمر مباشرة من عنوان البريد الموجود.',
+  copied: 'تم نسخ عنوان البريد.', copyFailed: 'حدّد عنوان البريد وانسخه، أو استخدم رابط البريد مباشرة.'
+} : {
+  greeting: 'Hi Omar,', service: 'Service', name: 'Name', reply: 'Reply to',
+  subject: 'Project enquiry', ready: 'Your draft is ready. Open it in your email app to review and send. If no email app opens, email Omar directly using the address alongside this form.',
+  copied: 'Email address copied.', copyFailed: 'Select and copy the email address, or use the email link.'
+};
 const menuButton = document.querySelector('[data-menu-toggle]');
 const menu = document.querySelector('#navigation');
 if (menuButton && menu) {
@@ -31,11 +41,11 @@ if (form) {
     const email = String(data.get('email')).trim();
     const service = String(data.get('service'));
     const message = String(data.get('message')).trim();
-    const body = `Hi Omar,\n\n${message}\n\nService: ${service}\nName: ${name}\nReply to: ${email}`;
+    const body = [contactText.greeting, '', message, '', contactText.service + ': ' + service, contactText.name + ': ' + name, contactText.reply + ': ' + email].join('\n');
     const link = document.querySelector('[data-email-draft]');
-    link.href = `mailto:${form.dataset.recipient}?subject=${encodeURIComponent(`Project enquiry — ${service}`)}&body=${encodeURIComponent(body)}`;
+    link.href = 'mailto:' + form.dataset.recipient + '?subject=' + encodeURIComponent(contactText.subject + ' — ' + service) + '&body=' + encodeURIComponent(body);
     link.hidden = false;
-    document.querySelector('[data-form-status]').textContent = 'Your draft is ready. Open it in your email app to review and send. If no email app opens, email Omar directly using the address alongside this form.';
+    document.querySelector('[data-form-status]').textContent = contactText.ready;
     link.focus();
   });
 }
@@ -46,9 +56,9 @@ if (copyButton) {
     const status = document.querySelector('[data-copy-status]');
     try {
       await navigator.clipboard.writeText(copyButton.dataset.copyEmail);
-      status.textContent = 'Email address copied.';
+      status.textContent = contactText.copied;
     } catch {
-      status.textContent = 'Select and copy the email address, or use the email link.';
+      status.textContent = contactText.copyFailed;
     }
   });
 }
@@ -68,3 +78,40 @@ document.querySelectorAll('[data-video-button]').forEach(button => {
     frame.focus();
   });
 });
+
+// Enhance only after an observer exists. Static HTML and unsupported browsers stay visible.
+const revealTargets = [...document.querySelectorAll('.reveal-on-scroll')];
+if (revealTargets.length) {
+  const motionPreference = matchMedia('(prefers-reduced-motion: reduce)');
+  let revealObserver;
+  const showAll = () => {
+    revealObserver?.disconnect();
+    document.documentElement.classList.remove('js-reveal-enabled');
+    revealTargets.forEach(node => node.classList.add('is-revealed'));
+  };
+  const enhanceReveal = () => {
+    if (motionPreference.matches || !('IntersectionObserver' in window)) {
+      showAll();
+      return;
+    }
+    try {
+      revealObserver?.disconnect();
+      revealObserver = new IntersectionObserver(entries => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          entry.target.classList.add('is-revealed');
+          revealObserver.unobserve(entry.target);
+        }
+      }, { threshold: 0.06, rootMargin: '0px 0px -24px 0px' });
+      revealTargets.forEach(node => revealObserver.observe(node));
+      document.documentElement.classList.add('js-reveal-enabled');
+    } catch {
+      showAll();
+    }
+  };
+  enhanceReveal();
+  motionPreference.addEventListener('change', () => {
+    if (motionPreference.matches) showAll();
+    else enhanceReveal();
+  });
+}

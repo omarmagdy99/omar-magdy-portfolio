@@ -279,14 +279,14 @@ ${stepper(level, lang)}
     <p class="dax-note">${T.dataNote}</p>
     <p class="dax-downloads"><a href="${prefix}assets/dax/data/retention-sales.csv" download data-dax-download>Sales.csv</a><a href="${prefix}assets/dax/data/retention-customers.csv" download data-dax-download>Customers.csv</a><a href="${prefix}assets/dax/data/retention-date.csv" download data-dax-download>Date.csv</a></p>
   </div>
-  <figure class="dax-model">${modelDiagram(T.modelLabel)}<figcaption>${T.modelCaption}</figcaption></figure>
+  <figure class="dax-model"><div class="dax-model-wrap" tabindex="0" role="region" aria-label="${T.modelTitle}">${modelDiagram(T.modelLabel)}</div><figcaption>${T.modelCaption}</figcaption></figure>
 </section>
 
 <section class="dax-target" aria-labelledby="target-title">
   <div class="section-heading"><div><div class="eyebrow">${T.target}</div><h2 id="target-title">${T.targetTitle}</h2></div><p>${L.heading} ${T.matchEvery}</p></div>
   <div class="dax-target__grid">
-    <figure class="dax-chart">${targetChart(target.values, level.format, lang, formatLabel, T.chartTitle(formatLabel))}<figcaption>${T.chartCaption}</figcaption></figure>
-    <table class="dax-table"><caption class="sr-only">${ctxCol}${T.tableCaption}</caption><thead><tr><th scope="col">${T.month}</th><th scope="col">${ctxCol}</th><th scope="col">${L.targetColumn}</th></tr></thead><tbody>${rows}</tbody></table>
+    <figure class="dax-chart"><div class="dax-chart-wrap" tabindex="0" role="region" aria-label="${T.chartCaption}">${targetChart(target.values, level.format, lang, formatLabel, T.chartTitle(formatLabel))}</div><figcaption>${T.chartCaption}</figcaption></figure>
+    <div class="dax-table-wrap" tabindex="0" role="region" aria-label="${L.heading}"><table class="dax-table"><caption class="sr-only">${ctxCol}${T.tableCaption}</caption><thead><tr><th scope="col">${T.month}</th><th scope="col">${ctxCol}</th><th scope="col">${L.targetColumn}</th></tr></thead><tbody>${rows}</tbody></table></div>
   </div>
 </section>
 
@@ -305,7 +305,7 @@ ${stepper(level, lang)}
       </div>
       <div class="dax-result" data-dax-result hidden>
         <div class="dax-result__head"><h3>${T.resultTitle}</h3><span class="dax-badge" data-dax-badge></span></div>
-        <div data-dax-chart></div>
+        <div data-dax-chart tabindex="0" role="region" aria-label="${T.chartCaption}"></div>
         <div class="dax-table-wrap" data-dax-compare></div>
       </div>
       <form class="dax-submit" data-dax-submit novalidate>

@@ -1,6 +1,7 @@
+import { checkLocalLinks } from './site-links.mjs';
 import assert from 'node:assert/strict';
-import { readFile, readdir, stat, access } from 'node:fs/promises';
-import { resolve, dirname, join } from 'node:path';
+import { readFile, readdir, stat } from 'node:fs/promises';
+import { resolve, join } from 'node:path';
 const root = resolve(import.meta.dirname,'../dist');
 const files = [];
 async function walk(dir){for(const e of await readdir(dir,{withFileTypes:true})){const p=join(dir,e.name);if(e.isDirectory())await walk(p);else files.push(p);}}
@@ -19,17 +20,7 @@ for(const page of pages){
  check(!/forkan|bpwebs|onclick=/i.test(html),'legacy project or inline handler remains');
  try {const graph=JSON.parse(html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1]);assert.equal(graph['@context'],'https://schema.org');assert(graph['@graph'].some(n=>n['@type']==='Person'));}catch{errors.push(`${name}: invalid structured data`);}
  for(const img of html.matchAll(/<img\b[^>]*>/g))check(/\balt="/.test(img[0])&&/\bwidth="\d+"/.test(img[0])&&/\bheight="\d+"/.test(img[0]),'image lacks accessible text or dimensions');
- for(const attr of html.matchAll(/\b(?:href|src)="([^"#]+)(?:#[^"]*)?"/g)){
-   const ref=attr[1].split('#')[0];if(/^(https?:|mailto:|tel:|data:)/.test(ref))continue;
-   const target=ref.startsWith('/')?resolve(root,'.'+ref):resolve(dirname(page),ref);
-   try {await access(target);}catch{errors.push(`${name}: missing local resource ${ref}`);}
- }
- for(const attr of html.matchAll(/\b(?:href)="([^" ]*#[^"]+)"/g)){
-   const ref=attr[1];if(/^(https?:|mailto:|tel:)/.test(ref))continue;
-   const [path,id]=ref.split('#');if(!id)continue;
-   const target=path?resolve(dirname(page),path):page;
-   try{const targetHtml=await readFile(target,'utf8');check(targetHtml.includes(`id="${id}"`),`missing anchor ${ref}`);}catch{}
- }
+ errors.push(...await checkLocalLinks(root,page,html));
 }
 const sitemap=await readFile(join(root,'sitemap.xml'),'utf8');
 assert.equal((sitemap.match(/<loc>/g)||[]).length,pages.length-1,'sitemap must include every indexable page');
